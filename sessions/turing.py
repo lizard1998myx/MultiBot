@@ -42,7 +42,7 @@ class TuringSession(Session):
                 for result in resp_payload['results']:
                     if result['resultType'] == 'text':
                         reply = result['values']['text']
-                        # exclude advertisements
+                        # exclude advertisements & 鸿蒙行为
                         reply = reply.replace('图灵', '韩大佬').replace('机器人', '')
                         match = re.search(pattern=r'http[:/\.\w]*', string=reply)
                         if match is not None:
