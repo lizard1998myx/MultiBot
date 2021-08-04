@@ -1,0 +1,12 @@
+【Wechaty安装说明】
+0. 指南
+https://wechaty.js.org/2021/04/13/wechaty-uos-web/
+https://python-wechaty.readthedocs.io/zh_CN/latest/introduction/use-web-protocol/
+
+1. python环境
+pip install wechaty
+
+2. docker-wsl2环境（可选，有冲突）
+升级 https://docs.microsoft.com/zh-cn/windows/wsl/install-win10
+容器 https://docs.microsoft.com/zh-cn/windows/wsl/tutorials/wsl-containers
+下载 https://hub.docker.com/editions/community/docker-ce-desktop-windows/
