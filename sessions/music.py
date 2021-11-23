@@ -2,8 +2,12 @@ import re
 from selenium import webdriver
 import urllib
 from selenium.webdriver.chrome.options import Options
-from MultiBot.sessions.argument import Argument, ArgSession
-from MultiBot.responses import ResponseMusic
+from .argument import Argument, ArgSession
+from ..responses import ResponseMusic
+from ..paths import PATHS
+
+
+webdriver_dir = PATHS['webdriver']
 
 
 class NetEaseSongSession(ArgSession):
@@ -36,7 +40,7 @@ class NetEaseSongSession(ArgSession):
 
 
 def search_songs(search_str='北京',
-                 webdriver_dir=r'C:\Users\Yuxi\PycharmProjects\untitled\chromedriver.exe'):
+                 webdriver_dir=webdriver_dir):
     url = f'https://music.163.com/#/search/m/?s={urllib.parse.quote(search_str)}&type=1'
     try:
         chrome_options = Options()

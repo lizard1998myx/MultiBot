@@ -1,9 +1,10 @@
-from MultiBot.sessions.general import Session
-from MultiBot.sessions.argument import ArgSession, Argument
-from MultiBot.responses import ResponseMsg
+from .general import Session
+from .argument import ArgSession, Argument
+from ..responses import ResponseMsg
+from ..paths import PATHS
 import os, csv
 
-BOX_DIR = os.path.join(os.path.abspath('..'), 'data', 'box')
+BOX_DIR = PATHS['box']
 BOX_FILE = os.path.join(BOX_DIR, 'alias_box.csv')
 
 try:

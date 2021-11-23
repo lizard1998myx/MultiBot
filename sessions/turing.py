@@ -1,6 +1,6 @@
-from MultiBot.responses import ResponseMsg
-from MultiBot.sessions.general import Session
-from MultiBot.api_tokens import TURING_API_KEY
+from ..responses import ResponseMsg
+from .general import Session
+from ..api_tokens import TURING_API_KEY
 import requests, json, re
 
 
@@ -42,7 +42,7 @@ class TuringSession(Session):
                 for result in resp_payload['results']:
                     if result['resultType'] == 'text':
                         reply = result['values']['text']
-                        # exclude advertisements & 鸿蒙行为
+                        # exclude advertisements
                         reply = reply.replace('图灵', '韩大佬').replace('机器人', '')
                         match = re.search(pattern=r'http[:/\.\w]*', string=reply)
                         if match is not None:

@@ -1,5 +1,5 @@
-from MultiBot.sessions.general import Session
-from MultiBot.responses import ResponseMsg
+from .general import Session
+from ..responses import ResponseMsg
 
 
 class Argument:
@@ -79,6 +79,9 @@ class ArgSession(Session):
                 req_args = ['']
             else:
                 req_args = request.msg.split()[1:]
+            print('== ArgSession ==')
+            print(request.msg)
+            print(req_args)
             n = len(req_args)
             if n == 0:
                 pass

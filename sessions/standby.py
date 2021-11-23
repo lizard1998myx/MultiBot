@@ -1,5 +1,5 @@
-from MultiBot.sessions.general import Session
-from MultiBot.responses import ResponseMsg
+from .general import Session
+from ..responses import ResponseMsg
 
 
 class StandbySession(Session):

@@ -1,5 +1,5 @@
-from MultiBot.responses import ResponseMsg, ResponseCQFunc
-from MultiBot.sessions.general import Session
+from ..responses import ResponseMsg, ResponseCQFunc
+from .general import Session
 
 
 class CQCommandSession(Session):

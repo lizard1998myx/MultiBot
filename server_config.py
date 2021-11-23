@@ -1,10 +1,10 @@
-FLASK_PORTS = {'WCP': 123,
-               'Integral': 124,
-               'Console': 125,
-               'Mail': 126,
-               'CQ': 127}
+FLASK_PORTS = {'WCP': 13090,
+               'Integral': 13091,
+               'Console': 13092,
+               'Mail': 13093,
+               'CQ': 13094}
 
-WECHATY_ENV = {'endpoint': '0.0.0.0:1234',
-               'token': '1234'}
+WECHATY_ENV = {'endpoint': '',
+               'token': ''}
 
-CQHTTP_URL = 'http://localhost:1212'
+CQHTTP_URL = 'http://localhost:5700'

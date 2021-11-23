@@ -1,9 +1,11 @@
-from MultiBot.sessions.general import Session
-from MultiBot.sessions.argument import ArgSession, Argument
-from MultiBot.responses import ResponseMsg, ResponseImg
+from .argument import ArgSession, Argument
+from ..responses import ResponseMsg, ResponseImg
+from ..paths import PATHS
 from pyzbar import pyzbar
 from PIL import Image
 import qrcode, datetime, os
+
+TEMP_DIR = PATHS['temp']
 
 
 class DeCodeSession(ArgSession):
@@ -54,7 +56,7 @@ class EnCodeSession(ArgSession):
     def internal_handle(self, request):
         self.deactivate()
         filename = datetime.datetime.now().strftime('QR_image_%Y%m%d-%H%M%S.jpg')
-        abs_dir = os.path.abspath(os.path.join('..', 'temp'))
+        abs_dir = TEMP_DIR
         abs_path = os.path.join(abs_dir, filename)
         encode(text=self.arg_dict['string'].value, filename=abs_path)
         return [ResponseMsg('【%s】生成二维码，信息为：%s' % (self.session_type, request.msg)),

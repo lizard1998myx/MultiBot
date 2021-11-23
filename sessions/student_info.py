@@ -1,10 +1,11 @@
 import csv, datetime, difflib, os
-from MultiBot.sessions.general import Session
-from MultiBot.responses import ResponseMsg
+from .general import Session
+from ..responses import ResponseMsg
+from ..paths import PATHS
 
 
-INFO_TABLE = os.path.join('..', 'data', 'GNB_student_info.csv')
-TOTAL_TABLE = os.path.join('..', 'data', 'GNB_total_info.csv')
+INFO_TABLE = os.path.join(PATHS['data'], 'GNB_student_info.csv')
+TOTAL_TABLE = os.path.join(PATHS['data'], 'GNB_total_info.csv')
 
 
 class InfoSession(Session):

@@ -1,10 +1,14 @@
-from MultiBot.sessions.argument import ArgSession, Argument
-from MultiBot.responses import ResponseMsg, ResponseImg
-from MultiBot.api_tokens import CAIYUN_API_TOKEN, BAIDU_MAP_API_TOKEN
-import requests, urllib, datetime, os, math, re
+from .argument import ArgSession, Argument
+from ..responses import ResponseMsg, ResponseImg
+from ..api_tokens import CAIYUN_API_TOKEN, BAIDU_MAP_API_TOKEN
+from ..paths import PATHS
+import requests, urllib, datetime, os, math, re, threading, time, traceback, random
 import matplotlib.pyplot as plt
 import numpy as np
+from PIL import Image
+from io import BytesIO
 
+# auto_plot_wind_map(self, length_km, delta_km, filename, delta_days=1, hour=12)
 
 class WeatherSession(ArgSession):
     def __init__(self, user_id):
@@ -20,18 +24,40 @@ class WeatherSession(ArgSession):
                          Argument(key='no-realtime', alias_list=['-nr'],
                                   help_text='不获取实时天气'),
                          Argument(key='general', alias_list=['-g'],
-                                  help_text='获取次日天气总览（温度、降水、空气质量、风力等）'),
+                                  help_text='获取天气总览（温度、降水、空气质量、风力等，默认次日）'),
                          Argument(key='wind', alias_list=['-w'],
-                                  help_text='获取次日风力预报'),
-                         Argument(key='precipitation', alias_list=['-p'],
+                                  help_text='获取风力预报（默认次日）'),
+                         Argument(key='precipitation', alias_list=['-p', '-p2h'],
                                   help_text='获取2小时降雨预报'),
                          Argument(key='today', alias_list=['-t'],
                                   help_text='修改为获取今日天气（对天气总览与风力预报有效）'),
+                         Argument(key='day2', alias_list=['-d2'],
+                                  help_text='修改为获取后天天气，优先级次于today'),
+                         Argument(key='windmap', alias_list=['-wmap'],
+                                  help_text='获取高可自定义性的风力分布图（默认实时）；'
+                                            '风矢中长划线表示10节（5.14m/s），短划线表示5节（2.57m/s），'
+                                            '点数过多时会随机舍弃部分数据点'),
+                         Argument(key='windmap-day', alias_list=['-wmap-d', '-wd'],
+                                  get_next=True, default_value=0,
+                                  help_text='风力图的日期（距离0-2天，默认0）'),
+                         Argument(key='windmap-hour', alias_list=['-wmap-h', '-wh'],
+                                  get_next=True, default_value=0,
+                                  help_text='风力图的时间（0-23时，默认0）'),
+                         Argument(key='windmap-length', alias_list=['-wmap-l', '-wl'],
+                                  get_next=True, default_value=10,
+                                  help_text='风力图的边长（km，默认10）'),
+                         Argument(key='windmap-deltalength', alias_list=['-wmap-dl', '-wdl'],
+                                  get_next=True, default_value=1,
+                                  help_text='风力图的点间隔（km，默认1）'),
+                         Argument(key='windmap-figsize', alias_list=['-wmap-fs', '-wfs'],
+                                  get_next=True, default_value=8,
+                                  help_text='风力图的画布尺寸（matplotlib参数，默认8.0，建议不大于25）'),
                          ]
         self.default_arg = self.arg_list[0]
         self.detail_description = '例如，可以直接发送“天气”后回复地理位置获取实时天气，或直接发送“天气 北京”获取信息。\n'\
                                   '也可直接使用经纬度，如“天气 120.0,40.0”，注意不加空格，单命令行的空格是参数的分隔符。\n'\
-                                  '进阶可发送“天气 雁栖湖 -nr -w -t”获取今日（-t）风力预报（-w），且不获取实时天气（-nr）。'
+                                  '进阶可发送“天气 雁栖湖 -nr -w -t”获取今日（-t）风力预报（-w），且不获取实时天气（-nr）。\n' \
+                                  '风力图的获取方法如“天气 北京市 -nr -wmap -wd 1 -wh 6 -wl 60 -wdl 5 -wfs 20”。'
 
     def is_legal_request(self, request):
         if not self.is_first_time and request.loc is not None:
@@ -74,25 +100,41 @@ class WeatherSession(ArgSession):
             # select target date
             if self.arg_dict['today'].called:
                 delta_days = 0
+            elif self.arg_dict['day2'].called:
+                delta_days = 2
             else:
                 delta_days = 1
 
             # get detail prediction
             if self.arg_dict['general'].called:  # add general report
-                filename = os.path.abspath(os.path.join('..', 'temp',
+                filename = os.path.abspath(os.path.join(PATHS['temp'],
                                                         '%s_Next_day_general.jpg' % datetime.date.today().isoformat()))
                 w_api.auto_plot_general(filename=filename, delta_days=delta_days)
                 responses.append(ResponseImg(file=filename))
+
             if self.arg_dict['wind'].called:  # add wind report
-                filename = os.path.abspath(os.path.join('..', 'temp',
+                filename = os.path.abspath(os.path.join(PATHS['temp'],
                                                         '%s_Next_day_wind.jpg' % datetime.date.today().isoformat()))
                 w_api.auto_plot_winds(filename=filename, delta_days=delta_days)
                 responses.append((ResponseImg(file=filename)))
+
             if self.arg_dict['precipitation'].called:
-                filename = os.path.abspath(os.path.join('..', 'temp',
+                filename = os.path.abspath(os.path.join(PATHS['temp'],
                                                         '%s_2h_precipitation.jpg' % datetime.date.today().isoformat()))
                 w_api.auto_plot_p2h(filename=filename)
                 responses.append((ResponseImg(file=filename)))
+
+            if self.arg_dict['windmap'].called:  # add wind map report
+                filename = os.path.abspath(os.path.join(PATHS['temp'],
+                                                        '%s_wind_map.jpg' % datetime.date.today().isoformat()))
+                w_api.auto_plot_wind_map(length_km=float(self.arg_dict['windmap-length'].value),
+                                         delta_km=float(self.arg_dict['windmap-deltalength'].value),
+                                         filename=filename,
+                                         delta_days=int(self.arg_dict['windmap-day'].value),
+                                         hour=int(self.arg_dict['windmap-hour'].value),
+                                         figsize=float(self.arg_dict['windmap-figsize'].value))
+                responses.append((ResponseImg(file=filename)))
+
             return responses
         except KeyError:
             return ResponseMsg('【%s】天气查询异常' % self.session_type)
@@ -268,7 +310,23 @@ class WeatherAPI:
 
         # First axis Temperature & Precipitation
         ln0a = self._next_day_plotter(axs[0], temp, label='Temperature', plot_kwargs={'color': 'orangered'})
-        axs[0].set_ylim(10, 40)
+
+        # preset temperature limits
+        ymin_set = 0
+        ymax_set = 30
+        # move up
+        while np.max(temp['value']) > ymax_set:
+            ymax_set += 10
+            ymin_set += 10
+        # move down
+        while np.min(temp['value']) < ymin_set:
+            ymin_set -= 10
+            ymax_set -= 10
+        # adjust delta
+        while np.max(temp['value']) > ymax_set:
+            ymax_set += 10
+
+        axs[0].set_ylim(ymin_set, ymax_set)
         axs[0].set_ylabel('Temperature [℃]')
         axs[0].set_title('Weather Forecast %s' % temp['date'])
         axs[0].grid()
@@ -336,14 +394,182 @@ class WeatherAPI:
         fig.tight_layout()
         fig.savefig(filename)
 
+    def auto_plot_wind_map(self, length_km, delta_km, filename, delta_days=1, hour=12, figsize=8, max_points=100):
+        # wind map on BaiduMap
+        # optimized with threading
+
+        earth_radius = 6378  # constant, km
+        center_x = self.longitude
+        center_y = self.latitude
+        length_deg = length_km / (math.pi / 180 * earth_radius)
+        delta_deg = delta_km / (math.pi / 180 * earth_radius)
+
+        xx = np.arange(center_x - length_deg / 2, center_x + length_deg / 2 + delta_deg, delta_deg)
+        yy = np.arange(center_y - length_deg / 2, center_y + length_deg / 2 + delta_deg, delta_deg)
+
+        # initial conditions
+        zoom = 2  # 3 or higher
+        length_pixels = 0
+        # adjust zooming and lengths
+        while length_pixels < 500:
+            zoom += 1
+            length_pixels = (length_km + delta_km) / (6.13e-3 * 2 ** (15 - zoom))
+            if zoom >= 18:
+                break
+
+        map_img_url = f"https://api.map.baidu.com/staticimage/v2?ak={BAIDU_MAP_API_TOKEN}" \
+                      f"&center={center_x},{center_y}&width={length_pixels}&height={length_pixels}" \
+                      f"&zoom={zoom}"
+        print(map_img_url)
+
+        nx = xx.shape[0]
+        ny = yy.shape[0]
+
+        # 当总点数超出最高点数后，以一定概率抛弃该点，防止过度访问
+        probability = nx*ny/max_points
+
+        # intialize array of WeatherApi objects
+        wapi_array = []
+        for x in xx:
+            wapi_list = []
+            for y in yy:
+                wapi_list.append(WeatherAPI(x, y))
+            wapi_array.append(wapi_list)
+
+        # initialize threads
+        thread_array = []
+        for i in range(nx):
+            thread_list = []
+            for j in range(ny):
+                thread_list.append(WapiThread(wapi=wapi_array[i][j], delta_days=delta_days, probability=probability))
+                thread_list[-1].start()
+            thread_array.append(thread_list)
+
+        # wait until completion
+        while True:
+            time.sleep(0.1)
+            still_alive = False
+            for i in range(nx):
+                for j in range(ny):
+                    if thread_array[i][j].is_alive():
+                        still_alive = True
+                        break
+            if still_alive:
+                # pipeline not finished
+                continue
+            else:
+                break
+
+        # fill wind arrays
+        wind_array = []
+        for i in range(nx):
+            wind_list = []
+            for j in range(ny):
+                wind_list.append(thread_array[i][j].wind)
+            wind_array.append(wind_list)
+
+        # check errors
+        for i in range(nx):
+            for j in range(ny):
+                if wind_array[i][j] is None:
+                    print(f'error in {i},{j}')
+                    print(thread_array[i][j].fail_reason)
+
+        img = Image.open(BytesIO(requests.get(map_img_url).content))
+
+        h_index = None
+
+        xlist = []  # longitude
+        ylist = []  # latitude
+        slist = []  # speed
+        dlist = []  # direction
+
+        for i in range(nx):
+            for j in range(ny):
+                if wind_array[i][j] is None:
+                    # exception handling
+                    # when data not properly acquired
+                    continue
+                else:
+                    # when data acquired successfully
+                    if h_index is None:
+                        # when hour is not set
+                        data_hour_list = wind_array[i][j]['hour']
+                        if hour < data_hour_list[0]:
+                            hour = data_hour_list[0]
+                            h_index = 0
+                        elif hour > data_hour_list[-1]:
+                            hour = data_hour_list[-1]
+                            h_index = -1
+                        else:
+                            h_index = hour - data_hour_list[0]
+                    # loading data into plot variables
+                    xlist.append(xx[i])
+                    ylist.append(yy[j])
+                    slist.append(wind_array[i][j]['speed'][h_index])
+                    dlist.append(wind_array[i][j]['direction'][h_index])
+
+        fig, ax = plt.subplots(figsize=(figsize, figsize))
+        s = np.array(slist)
+        d = np.array(dlist) * math.pi / 180
+        u = -s * np.sin(d) / 1.852
+        v = -s * np.cos(d) / 1.852
+
+        ax.barbs(xlist, ylist, u, v, pivot='middle')
+        ax.imshow(img, extent=(xx[0] - delta_deg / 2, xx[-1] + delta_deg / 2,
+                               yy[0] - delta_deg / 2, yy[-1] + delta_deg / 2))
+        ax.set_xlabel('Longitude [deg]')
+        ax.set_ylabel('Latitude [deg]')
+        ax.set_title(f'Wind Forcast at {hour:02d}:00')
+        fig.tight_layout()
+        fig.savefig(filename)
 
     def test(self):
         self.auto_plot_general('test_general.png')
 
 
+# optimize with threadings
+class WapiThread(threading.Thread):
+    def __init__(self, wapi, delta_days, probability=1):
+        threading.Thread.__init__(self)
+        self.wapi = wapi
+        self.delta_days = delta_days
+        self.probability = probability
+        self.wind = None
+        self.success = False
+        self.unexpected_error = False
+        self.fail_reason = ''
+
+    def run(self):
+        try:
+            if random.random() > self.probability:
+                # 以一定概率（1-p）抛弃此数据点
+                raise Exception
+            max_connection_retries = 3
+            retries = 0
+            while not self.success:
+                try:
+                    wind = self.wapi.delta_day_wind(delta_days=self.delta_days)
+                    self.wind = wind
+                    self.success = True
+                except requests.exceptions.ConnectionError as e:
+                    # if failed by connection error, wait and restart
+                    retries += 1
+                    if retries <= max_connection_retries:
+                        time.sleep(0.1)
+                        # goes back to the while loop
+                    else:
+                        raise e
+                        # raise the error to previous try (next line)
+        except Exception:
+            # if unexpected error happened or max retries reached
+            self.unexpected_error = True
+            self.fail_reason = traceback.format_exc()
+
+
 def next_day_temperature(longitude=116.33, latitude=39.98):
     wapi = WeatherAPI(longitude=longitude, latitude=latitude)
-    filename = os.path.abspath(os.path.join('..', 'temp',
+    filename = os.path.abspath(os.path.join(PATHS['temp'],
                                             '%s_Next_day_weather.jpg' % datetime.date.today().isoformat()))
     wapi.plot_temperature(**wapi.next_day_temperature(), filename=filename)
     return ResponseImg(file=filename)
@@ -351,7 +577,7 @@ def next_day_temperature(longitude=116.33, latitude=39.98):
 
 def next_day_t_a(longitude=116.33, latitude=39.98):
     wapi = WeatherAPI(longitude=longitude, latitude=latitude)
-    filename = os.path.abspath(os.path.join('..', 'temp',
+    filename = os.path.abspath(os.path.join(PATHS['temp'],
                                             '%s_Next_day_t_a.jpg' % datetime.date.today().isoformat()))
     wapi.auto_plot_t_a(filename=filename)
     return ResponseImg(file=filename)
@@ -359,7 +585,7 @@ def next_day_t_a(longitude=116.33, latitude=39.98):
 
 def next_day_general(longitude=116.33, latitude=39.98):
     wapi = WeatherAPI(longitude=longitude, latitude=latitude)
-    filename = os.path.abspath(os.path.join('..', 'temp',
+    filename = os.path.abspath(os.path.join(PATHS['temp'],
                                             '%s_Next_day_general.jpg' % datetime.date.today().isoformat()))
     wapi.auto_plot_general(filename=filename)
     return ResponseImg(file=filename)
@@ -367,7 +593,7 @@ def next_day_general(longitude=116.33, latitude=39.98):
 
 def next_day_wind(longitude=116.33, latitude=39.98):
     wapi = WeatherAPI(longitude=longitude, latitude=latitude)
-    filename = os.path.abspath(os.path.join('..', 'temp',
+    filename = os.path.abspath(os.path.join(PATHS['temp'],
                                             '%s_Next_day_wind.jpg' % datetime.date.today().isoformat()))
     wapi.auto_plot_winds(filename=filename)
     return ResponseImg(file=filename)

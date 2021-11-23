@@ -1,10 +1,11 @@
-from MultiBot.sessions.general import Session
-from MultiBot.responses import ResponseMsg
+from .general import Session
+from ..responses import ResponseMsg
+from ..paths import PATHS
 import pytz, datetime, requests, csv, os, threading, time
 
-ACCOUNT_LIST = os.path.join('..', 'data', 'subcovid_account_list.csv')
-COOKIE_LIST = os.path.join('..', 'data', 'subcovid_cookie_list.csv')
-COOKIE_INFO_LIST = os.path.join('..', 'data', 'subcovid_cookie_list_info.csv')
+ACCOUNT_LIST = os.path.join(PATHS['data'], 'subcovid_account_list.csv')
+COOKIE_LIST = os.path.join(PATHS['data'], 'subcovid_cookie_list.csv')
+COOKIE_INFO_LIST = os.path.join(PATHS['data'], 'subcovid_cookie_list_info.csv')
 
 
 class SubcovidSession(Session):
