@@ -8,7 +8,6 @@ import numpy as np
 from PIL import Image
 from io import BytesIO
 
-# auto_plot_wind_map(self, length_km, delta_km, filename, delta_days=1, hour=12)
 
 class WeatherSession(ArgSession):
     def __init__(self, user_id):
@@ -426,7 +425,7 @@ class WeatherAPI:
         ny = yy.shape[0]
 
         # 当总点数超出最高点数后，以一定概率抛弃该点，防止过度访问
-        probability = nx*ny/max_points
+        probability = max_points/(nx*ny)
 
         # intialize array of WeatherApi objects
         wapi_array = []
@@ -468,12 +467,16 @@ class WeatherAPI:
                 wind_list.append(thread_array[i][j].wind)
             wind_array.append(wind_list)
 
+        n_unexpected_errors = 0
+
         # check errors
         for i in range(nx):
             for j in range(ny):
                 if wind_array[i][j] is None:
-                    print(f'error in {i},{j}')
-                    print(thread_array[i][j].fail_reason)
+                    if thread_array[i][j].unexpected_error:
+                        n_unexpected_errors += 1
+                        print(f'error in {i},{j}')
+                        print(thread_array[i][j].fail_reason)
 
         img = Image.open(BytesIO(requests.get(map_img_url).content))
 
@@ -520,7 +523,7 @@ class WeatherAPI:
                                yy[0] - delta_deg / 2, yy[-1] + delta_deg / 2))
         ax.set_xlabel('Longitude [deg]')
         ax.set_ylabel('Latitude [deg]')
-        ax.set_title(f'Wind Forcast at {hour:02d}:00')
+        ax.set_title(f'Wind Forcast at {hour:02d}:00 ({len(xlist)}/{nx*ny} points with {n_unexpected_errors} errors)')
         fig.tight_layout()
         fig.savefig(filename)
 
@@ -541,10 +544,12 @@ class WapiThread(threading.Thread):
         self.fail_reason = ''
 
     def run(self):
+        if random.random() > self.probability:
+            # 以一定概率（1-p）抛弃此数据点
+            print('rejected')
+            self.fail_reason = 'abandoned'
+            return
         try:
-            if random.random() > self.probability:
-                # 以一定概率（1-p）抛弃此数据点
-                raise Exception
             max_connection_retries = 3
             retries = 0
             while not self.success:
