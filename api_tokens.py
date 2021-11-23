@@ -4,15 +4,15 @@ OCR_API_KEY = ''
 OCR_SECRET_KEY = ''
 
 # 腾讯云API，用于语音识别，技术文档： https://cloud.tencent.com/product/asr
-TCT_APPID = ''
-TCT_SECRET_ID = ''
-TCT_SECRET_KEY = ''
+TCT_APPID = ""
+TCT_SECRET_ID = ""
+TCT_SECRET_KEY = ""
 
 # 图灵聊天机器人接口，技术文档： https://www.kancloud.cn/turing/www-tuling123-com/718227
 TURING_API_KEY = ''
 
 # 彩云天气api，技术文档： https://open.caiyunapp.com/Main_Page
-CAIYUN_API_TOKEN = ''
+CAIYUN_API_TOKEN = ""
 # 百度地图开放平台，技术文档： http://lbsyun.baidu.com/index.php?title=webapi/guide/webservice-geocoding
 BAIDU_MAP_API_TOKEN = ''
 
@@ -33,8 +33,9 @@ CAIYUN_TRANS_TOKEN = ''
 WCP_TOKEN = ''
 WCP_APP_ID = ''
 WCP_APP_SECRET = ''
+# 需要在微信公众平台加入IP白名单才可以
 
 # 邮箱
-SENDER = {'name': 'MultiBot',
+SENDER = {'name': '',
           'address': '',
           'pwd': ''}

@@ -1,8 +1,10 @@
-from MultiBot.responses import ResponseMsg, ResponseImg
-from MultiBot.version_description import DESCRIPTION, VERSION_LIST, INTRODUCTION
-import datetime, os
+from ..responses import ResponseMsg, ResponseImg
+from ..version_description import DESCRIPTION, VERSION_LIST, INTRODUCTION
+from ..paths import PATHS
+import datetime, os, re
 
 DEFAULT_WAIT = 10
+HISTORY_DIR = PATHS['history']
 
 
 # 基本的Session类，默认功能是复读机
@@ -226,3 +228,30 @@ class ErrorSession(Session):
     def handle(self, request):
         self.deactivate()
         raise Exception('[{}]人工抛出错误，用于异常处理测试'.format(self.session_type))
+
+
+class HistorySession(Session):
+    def __init__(self, user_id):
+        Session.__init__(self, user_id=user_id)
+        self.session_type = '插件使用历史'
+        self.strict_commands = ['history', '历史']
+
+    def handle(self, request):
+        self.deactivate()
+        history_file_list = os.listdir(HISTORY_DIR)
+        history_dict = {}
+        for file in history_file_list:
+            file_split = file.split('_')
+            if len(file_split) == 3:
+                platform = file_split[0]
+                session = file_split[1]
+                if session in history_dict.keys():
+                    history_dict[session] += 1
+                else:
+                    history_dict[session] = 1
+        history_text = f'[{self.session_type}]\n'
+        for s, i in history_dict.items():
+            history_text += f'{s}[{i}], '
+        if history_text[-2:] == ', ':
+            history_text = history_text[:-2]
+        return ResponseMsg(history_text)

@@ -1,5 +1,5 @@
-from MultiBot.responses import ResponseMsg
-from MultiBot.sessions.general import Session
+from ..responses import ResponseMsg
+from .general import Session
 
 
 # 计数器

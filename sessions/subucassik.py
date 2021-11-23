@@ -1,5 +1,5 @@
-from MultiBot.sessions.argument import Argument, ArgSession
-from MultiBot.responses import ResponseMsg
+from .argument import Argument, ArgSession
+from ..responses import ResponseMsg
 import requests, datetime, json
 
 COOKIE_STR = 'sepuser="123==  "; vjuid=123; vjvd=123; vt=123'
@@ -103,7 +103,7 @@ def sub_sik(cookies=COOKIE, form=None, delta_days=1):
 class SubucassikSession(ArgSession):
     def __init__(self, user_id):
         ArgSession.__init__(self, user_id=user_id)
-        self._max_delta = 3*60
+        self._max_delta = 30
         self.session_type = '自动申报插件'
         self.strict_commands = ['sik', '申报', '行程']
         self.description = '登记自动行程申报，感谢zyk师兄提供的代码指导'
@@ -113,8 +113,9 @@ class SubucassikSession(ArgSession):
                           "【警告】\n" 
                           "本插件原理是使用爬虫登录国科大办事大厅，后台可以获取到身份证号、联系方式等敏感信息。" 
                           "开发者承诺该版本插件所使用信息为一次性，不保存cookie，不主动获取保存其他个人信息。\n" 
-                          "【半自动操作流程（推荐）】\n" 
-                          "退出本插件并回复“sep”或“ehall”直接登录并获取cookie，再进入本插件进行申报。\n" 
+                          "【半自动操作流程（推荐）】\n"
+                          f"无视后续所有流程直到插件报错或等待{self._max_delta}秒，"
+                          "回复“sep”或“ehall”直接登录并获取cookie，再进入本插件进行申报。\n" 
                           "【纯手动操作流程（电脑浏览器）】\n" 
                           "1. 打开新标签页，按F12进入开发者模式，选择上方network选项卡；\n" 
                           "2. 进入https://ehall.ucas.ac.cn/，若自动登录则进入下一步，" 
@@ -165,7 +166,14 @@ class SubucassikSession(ArgSession):
         for delta in range(delta_i, delta_f + 1):
             resp = sub_sik(cookies=cookies,
                            form=self._identities['form1533'], delta_days=delta)
-            msg[delta] = resp.text
-        results.append(ResponseMsg(f'【{self.session_type}】填报结果为：\n{msg}\n'
-                                   f'日期{date_i.isoformat()}至{date_f.isoformat()}'))
+            if resp.json().get('e') != 0:  # fail
+                msg[delta] = resp.text
+        res_msg = f'【{self.session_type}】填报完毕。\n' \
+                  f'日期{date_i.isoformat()}至{date_f.isoformat()}\n'
+        if len(msg) == 0:
+            res_msg += '全部成功。'
+        else:
+            res_msg += f'有{len(msg)}个填报失败，信息：\n{msg}'
+        results.append(ResponseMsg(res_msg))
         return results
+

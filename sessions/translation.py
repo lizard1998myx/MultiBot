@@ -1,6 +1,6 @@
-from MultiBot.sessions.argument import ArgSession, Argument
-from MultiBot.responses import ResponseMsg
-from MultiBot.api_tokens import CAIYUN_TRANS_TOKEN, TCT_SECRET_ID, TCT_SECRET_KEY
+from .argument import ArgSession, Argument
+from ..responses import ResponseMsg
+from ..api_tokens import CAIYUN_TRANS_TOKEN, TCT_SECRET_ID, TCT_SECRET_KEY
 import requests, json
 
 

@@ -1,12 +1,11 @@
 import requests, hmac, hashlib, base64, time, random, os, json, shutil
-from MultiBot.api_tokens import TCT_APPID, TCT_SECRET_ID, TCT_SECRET_KEY
-from MultiBot.sessions.argument import Argument, ArgSession
-from MultiBot.sessions.general import Session
-from MultiBot.responses import ResponseMsg
-from MultiBot.utils import format_filename
+from ..api_tokens import TCT_APPID, TCT_SECRET_ID, TCT_SECRET_KEY
+from .argument import Argument, ArgSession
+from .general import Session
+from ..responses import ResponseMsg
 import ffmpy3
 
-# 代码来自：https://github.com/TencentCloud/tencentcloud-speech-sdk-python
+# 核心代码来自：https://github.com/TencentCloud/tencentcloud-speech-sdk-python
 
 ENGINE_TYPE = "16k_zh"
 

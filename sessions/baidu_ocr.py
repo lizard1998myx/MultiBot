@@ -1,6 +1,6 @@
-from MultiBot.sessions.argument import ArgSession, Argument
-from MultiBot.responses import ResponseMsg
-from MultiBot.api_tokens import OCR_APP_ID, OCR_API_KEY, OCR_SECRET_KEY
+from .argument import ArgSession, Argument
+from ..responses import ResponseMsg
+from ..api_tokens import OCR_APP_ID, OCR_API_KEY, OCR_SECRET_KEY
 from aip import AipOcr
 
 

@@ -1,9 +1,10 @@
-from MultiBot.sessions.general import Session
-from MultiBot.sessions.argument import ArgSession, Argument
-from MultiBot.responses import ResponseMsg, ResponseImg
-import os, csv, shutil, datetime
+from .general import Session
+from .argument import ArgSession, Argument
+from ..responses import ResponseMsg, ResponseImg
+from ..paths import PATHS
+import os, csv, shutil, datetime, random
 
-BOX_DIR = os.path.join(os.path.abspath('..'), 'data', 'box')
+BOX_DIR = PATHS['box']
 BOX_FILE = os.path.join(BOX_DIR, 'answer_box.csv')
 
 try:
@@ -23,7 +24,7 @@ class AutoAnswerSession(Session):
     def __init__(self, user_id):
         Session.__init__(self, user_id=user_id)
         self.session_type = '问答机'
-        self.description = '从问答数据库中获取问答，并自动回复，有多条符合时会全部回复'
+        self.description = '从问答数据库中获取问答，并自动回复，有多条符合时会全部回复（除非设定只选一条）'
         self.answer_table = []
         self._load_table()
         self._list_commands = False
@@ -38,6 +39,11 @@ class AutoAnswerSession(Session):
                 for row in reader:
                     self.answer_table.append(row)
                     command = row['question']
+                    if command[0] == '/':
+                        command = command[1:]
+                        if len(command) == 0 or command == '+':
+                            # empty question, do not search
+                            continue
                     if command[-1] == '+':
                         self.extend_commands.append(command[:-1])
                     else:
@@ -48,32 +54,51 @@ class AutoAnswerSession(Session):
     def handle(self, request):
         self.deactivate()
         responses = []
+        responses_to_choose = []
         strict_only = False
         for item in self.answer_table:
+            # read command
             command = item['question']
-            if command[-1] == '+' and command[:-1].lower() in request.msg.lower():
+            command_is_extended = bool(command[-1] == '+')
+            command_is_to_choose = bool(command[0] == '/')
+            command_text = command.lower()
+            if command_is_extended:
+                command_text = command_text[:-1]
+            if command_is_to_choose:
+                command_text = command_text[1:]
+
+            if command_is_extended and command_text in request.msg.lower():
                 # extended command
                 if strict_only:
                     continue
                 else:
                     pass
-            elif command.lower() == request.msg.lower():
+            elif command_text == request.msg.lower():
                 # strict command
                 if strict_only:
                     pass
                 else:
                     # refresh
                     responses = []
+                    responses_to_choose = []
                     strict_only = True
             else:
                 continue
-            # text = item['answer_text'].replace(r'\n', '\n').replace(' n', 'n')
+            # add this item to the response list
             text = item['answer_text']
             img = item['answer_img']
             if text:
-                responses.append(ResponseMsg(text))
+                if command_is_to_choose:
+                    responses_to_choose.append(ResponseMsg(text))
+                else:
+                    responses.append(ResponseMsg(text))
             if img:
-                responses.append(ResponseImg(img))
+                if command_is_to_choose:
+                    responses_to_choose.append(ResponseImg(img))
+                else:
+                    responses.append(ResponseImg(img))
+        if responses_to_choose:
+            responses.append(random.choice(responses_to_choose))
         return responses
 
 
@@ -81,7 +106,8 @@ class AddAnswerSession(ArgSession):
     def __init__(self, user_id):
         ArgSession.__init__(self, user_id=user_id)
         self.session_type = '问答库更新'
-        self.description = '在问答库中添加问题与回复，末尾带“+”为不严格指令'
+        self.description = '在问答库中添加问题与回复，末尾带加号“+”为不严格指令，' \
+                           '最前面为斜杠“/”的会在符合条件的答案中选择一条回复'
         self.extend_commands = ['问答机']
         self._max_delta = 120
         self.is_first_time = True
@@ -118,7 +144,11 @@ class AddAnswerSession(ArgSession):
 
     def internal_handle(self, request):
         self.deactivate()
-        self.question = self.arg_dict['question'].value
+        question = self.arg_dict['question'].value
+        if not bool(question):
+            return ResponseMsg(f'【{self.session_type}】空白问题，不添加')
+        else:
+            self.question = self.arg_dict['question'].value
         text = self.arg_dict['text'].value
         if text.lower() in ['-', '/', '无', 'none', 'null']:
             self.answer_text = ''

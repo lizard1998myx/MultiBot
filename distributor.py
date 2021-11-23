@@ -1,9 +1,12 @@
-import pickle, os, traceback
-from MultiBot.session_initialize import NEW_SESSIONS, NEW_SESSIONS_CRON
-from MultiBot.responses import Response, ResponseMsg
-from MultiBot.requests import Request
+import pickle, os, traceback, time
+from .session_initialize import NEW_SESSIONS, NEW_SESSIONS_CRON
+from .responses import Response, ResponseMsg
+from .requests import Request
+from .paths import PATHS
 
-ACTIVE_SESSIONS = os.path.join('..', 'data', 'active_sessions.data')
+ACTIVE_SESSIONS = os.path.join(PATHS['data'], 'active_sessions.data')
+HISTORY_DIR = PATHS['history']
+SAVE_HISTORY = True
 
 
 # 分拣中心，对于每个来自各聊天软件接口的Request，寻找活动的Session或创建合适的Session
@@ -81,8 +84,15 @@ class Distributor:
                 # 把新Session存入内存的表中，把Request交给新Session处理
                 self.active_sessions.append(session)
                 self.current_session = session
+                if SAVE_HISTORY:
+                    filename = os.path.join(HISTORY_DIR, f'{request.platform}_{session.session_type}_{time.time()}.txt')
+                    with open(filename, 'w') as f:
+                        f.write(f'platform={request.platform}\n'
+                                f'user_id={request.user_id}\n'
+                                f'session={session.session_type}\n'
+                                f'time={time.time()}')
 
-        # 同一处理current_session
+        # 统一处理current_session
         if session is not None:
             responses = []
             try:

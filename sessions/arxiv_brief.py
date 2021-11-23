@@ -1,5 +1,5 @@
-from MultiBot.sessions.argument import ArgSession, Argument
-from MultiBot.responses import ResponseMsg
+from .argument import ArgSession, Argument
+from ..responses import ResponseMsg
 import arxiv, datetime
 
 
