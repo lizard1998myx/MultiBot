@@ -1,5 +1,5 @@
 from ..ConsoleIO.console_porter import ConsolePorter
-from ..EMail import MailPorter
+from ..EMail.email_porter import MailPorter
 from ..QQbot.cq_server import CQHttpPorter
 from ...server_config import FLASK_PORTS
 import flask, threading, time

@@ -20,26 +20,40 @@ from .sessions.tencent_voice import ActiveAudioSession, PassiveAudioSession
 from .sessions.standby import StandbySession
 from .sessions.subucassik import SubucassikSession
 from .sessions.seplogin import SepLoginSession
-from .sessions.music import NetEaseSongSession
+from .sessions.music import MusicSession
 from .sessions.covid_regions import CovidRiskSession, CovidRiskUpdateSession
 from .sessions.subnaoc import SubNaocSession
+from .sessions.subnaoc_exp import SubNaocExpSession
 from .sessions.user_note_search import UserNoteSession
+from .sessions.wake_on_lan import WolSession
+from .sessions.subscription import AddQQSubscriptionSession, DelQQSubscriptionSession
+from .sessions.popular import NbnhhshSession, BookOfAnswersSession, WebImgSession
+from .sessions.perms_add import AddPermissionSession, DelPermissionSession
+from .sessions.astropy import AstroPlotSession
+from .sessions.cosmology import CosmoPlotSession
 from .paths import PATHS
 import os
 
+# 普通任务启用的sessions
 NEW_SESSIONS = [IntroSession, DescriptionSession, VersionSession, HelpSession, ErrorSession, HistorySession,
                 StandbySession, RepeatSession, IdentitySession, CounterSession, TuringSession, InfoSession,
                 OcrSession, ActiveAudioSession, PassiveAudioSession,
-                WeatherSession, TranslationSession,
-                SubcovidSession, SubucassikSession, SepLoginSession, SubNaocSession, UserNoteSession,
-                DeCodeSession, EnCodeSession,
+                WeatherSession, TranslationSession, NbnhhshSession, BookOfAnswersSession, WebImgSession,
+                SubcovidSession, SubucassikSession, SepLoginSession, SubNaocSession, SubNaocExpSession,
+                UserNoteSession,
+                DeCodeSession, EnCodeSession, WolSession,
                 ClassroomScheduleSession, ClassroomScheduleUpdateSession,
                 CovidRiskSession, CovidRiskUpdateSession,
-                ArxivSession, AutoBaiduSession, NetEaseSongSession,
+                ArxivSession, AstroPlotSession, CosmoPlotSession, AutoBaiduSession, MusicSession,
                 AutoAnswerSession, AddAnswerSession, AutoAliasSession, AddAliasSession,
+                AddQQSubscriptionSession, DelQQSubscriptionSession,
+                AddPermissionSession, DelPermissionSession,
                 CQCommandSession, CQRebootSession, CQGroupSuicideSession, CQGroupRandomSession]
+
+# 定时任务中启用的sessions
 NEW_SESSIONS_CRON = [QQScheduleSession, WCScheduleSession]
 
+# 初始化帮助文档并保存
 help_text = ''
 for session_class in NEW_SESSIONS + NEW_SESSIONS_CRON:
     help_text += session_class('').help()

@@ -9,6 +9,7 @@ from ..paths import PATHS
 TEMP_DIR = PATHS['temp']
 webdriver_dir = PATHS['webdriver']
 
+# 2021-12-06: 更新新版验证码，ehall cookies多次尝试
 
 class SepLoginSession(ArgSession):
     def __init__(self, user_id):
@@ -17,10 +18,10 @@ class SepLoginSession(ArgSession):
         self.session_type = 'SEP登录插件'
         self.strict_commands = ['sep', 'ehall', 'cookie', '登录']
         self.description = '登录SEP&服务大厅并获取cookie，已接入SIK'
-        agreement_text = ("\n自动化登录SEP&服务大厅并获取cookie，出现报错请联系开发者（回复“更多”获取联系方式）。\n" 
+        agreement_text = ("\n自动化登录SEP&服务大厅并获取cookie，出现报错请联系管理员（回复“更多”获取联系方式）。\n" 
                           "【警告】\n"
                           "本插件原理是使用爬虫登录SEP和国科大办事大厅。" 
-                          "开发者承诺该版本插件所使用信息为一次性，不保存cookie，不主动获取保存其他个人信息。\n" 
+                          "所使用信息为一次性，不保存账号、密码、cookie和个人信息。\n" 
                           "【下一步】\n" 
                           "确认仔细阅读上述条款且无异议，回复任意消息进入下一步。")
         self.arg_list = [Argument(key='agree', alias_list=['-y', '-a'],
@@ -78,9 +79,8 @@ class SepLoginSession(ArgSession):
         elif self.times_get_in == 3:
             self.deactivate()
             if request.msg == '是' or request.msg.lower()[0] == 'y':
-                return [ResponseMsg(f'【{self.session_type}】自动调用SIK中...\n'
-                                    f'请忽略SIK的cookie请求，直接回复最后一条消息'),
-                        request.new(msg='SIK -y'), request.new(msg=self._cookie_string)]
+                return [ResponseMsg(f'【{self.session_type}】自动调用SIK中...'),
+                        request.new(msg=f'SIK -y -c "{self._cookie_string}"')]
             else:
                 return ResponseMsg(f'【{self.session_type}】不调用SIK，结束')
         else:
@@ -120,7 +120,8 @@ class SepLogin:
 
     def get_code(self, code_filename):
         # jpg file
-        code_url = 'http://sep.ucas.ac.cn/randomcode.jpg'
+        # code_url = 'http://sep.ucas.ac.cn/randomcode.jpg'
+        code_url = 'http://sep.ucas.ac.cn/changePic'
         code_headers = {'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
                         'Accept-Encoding': 'gzip, deflate',
                         'Accept-Language': 'zh-CN,zh;q=0.9',
@@ -167,9 +168,18 @@ class SepLogin:
         self.cookie_dict[new_cookie_key] = new_cookie_value
 
     def login_ehall(self):
-        ehall_url = 'http://sep.ucas.ac.cn/portal/site/416/2095'
-        self.update_cookie(url=ehall_url, domain='.ucas.ac.cn')
-        return self.make_cookie_string(cookie_names=['sepuser', 'vjuid', 'vjvd', 'vt'])
+        max_retires = 3
+        retires = 0
+        while retires <= max_retires:
+            retires += 1
+            try:
+                ehall_url = 'http://sep.ucas.ac.cn/portal/site/416/2095'
+                self.update_cookie(url=ehall_url, domain='.ucas.ac.cn')
+                result = self.make_cookie_string(cookie_names=['sepuser', 'vjuid', 'vjvd', 'vt'])
+                return result
+            except KeyError:
+                continue
+        raise Exception('fail to get ehall cookies')
 
     def update_cookie(self, url, domain=".ucas.ac.cn"):
         chrome_options = Options()

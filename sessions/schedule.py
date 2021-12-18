@@ -4,7 +4,10 @@ from .subcovid import daily_run
 from .weather import next_day_general
 from .classroom_schedule import classroom_cache_update
 from .covid_regions import covid_region_cache_update
+from .subscription import get_qq_subscriptions
 import datetime
+
+# 2021-12-11: 支持分钟级，并加入订阅功能
 
 
 class QQScheduleSession(Session):
@@ -19,31 +22,35 @@ class QQScheduleSession(Session):
         return 0
 
     def is_legal_request(self, request):
-        if request.platform == 'CQ':
+        if request.platform == 'CQ' and request.from_scheduler:
             return True
         return False
 
     def handle(self, request):
         response_list = []
         now = datetime.datetime.now()
-        if now.hour == 3:
-            classroom_cache_update()
-        if now.hour in [8, 14, 20]:
-            covid_region_cache_update()
-        if 4 <= now.hour <= 6:
-            subcovid_result = daily_run()
-            subcovid_msg = '【自动疫情填报】成功%i个，失败%i个' % (subcovid_result['success'], subcovid_result['fail'])
-            response_list.append(ResponseGrpMsg(group_id=230697355, text=subcovid_msg))
-        if now.hour == 6:
-            response_list.append(ResponseGrpMsg(group_id=865640538, text='国台的扛把子们早上好！o(*￣▽￣*)ブ'))
-        if now.hour == 22:
-            f = next_day_general().file
-            f2 = next_day_general(116.26, 39.92).file
-            response_list.append(ResponseGrpImg(group_id=865640538, file=f))
-            response_list.append(ResponseGrpImg(group_id=230697355, file=f))
-            response_list.append(ResponseGrpImg(group_id=810070877, file=f2))
-        response_list.append(ResponseGrpMsg(group_id=230697355, text='【报时】现在%i点了' % now.hour))
-        return response_list
+        if now.minute == 0:  # 整点
+            if now.hour == 3:
+                classroom_cache_update()
+            if now.hour in [8, 14, 20]:
+                covid_region_cache_update()
+            if 4 <= now.hour <= 6:
+                subcovid_result = daily_run()
+                subcovid_msg = '【自动疫情填报】成功%i个，失败%i个' % (subcovid_result['success'], subcovid_result['fail'])
+                response_list.append(ResponseGrpMsg(group_id=230697355, text=subcovid_msg))
+            if now.hour == 6:
+                response_list.append(ResponseGrpMsg(group_id=865640538, text='国台的扛把子们早上好！o(*￣▽￣*)ブ'))
+            if now.hour == 22:
+                f = next_day_general().file
+                response_list.append(ResponseGrpImg(group_id=865640538, file=f))  # 班群
+                response_list.append(ResponseGrpImg(group_id=230697355, file=f))  # 测试群
+            if now.hour == 23:
+                f2 = next_day_general(116.26, 39.92).file
+                response_list.append(ResponseGrpImg(group_id=810070877, file=f2))  # 福建群
+            if now.hour % 4 == 0:
+                # 腾讯风控变严格，改为间隔4h报时
+                response_list.append(ResponseGrpMsg(group_id=230697355, text='【报时】现在%i点了' % now.hour))
+        return response_list + get_qq_subscriptions(request=request, now=now)
 
 
 class WCScheduleSession(Session):
@@ -58,7 +65,7 @@ class WCScheduleSession(Session):
         return 0
 
     def is_legal_request(self, request):
-        if request.platform == 'Wechat':
+        if request.platform == 'Wechat' and request.from_scheduler:
             return True
         return False
 

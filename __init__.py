@@ -9,3 +9,5 @@ from .porters.WebApp.web_app import main as web_main
 from .porters.WebApp.integrate_web import main as integrate_web_main
 from .porters.Service.integral_service import main as integrate_server_main
 
+from .porters.Service.clients import MultiBotClient
+

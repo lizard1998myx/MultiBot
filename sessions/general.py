@@ -5,6 +5,7 @@ import datetime, os, re
 
 DEFAULT_WAIT = 10
 HISTORY_DIR = PATHS['history']
+DATA_DIR = PATHS['data']
 
 
 # 基本的Session类，默认功能是复读机
@@ -209,13 +210,14 @@ class HelpSession(Session):
         self.deactivate()
         help_text = f'[{self.session_type}]\n' \
                     f'机器人消息处理由插件控制，以下为插件使用帮助，' \
-                    f'包括：插件名称，唤起关键词（不区分大小写，带表示不严格指令，即消息中带有该关键字即唤起），' \
+                    f'包括：插件名称，唤起关键词（不区分大小写，带+表示不严格指令，即消息中带有该关键字即唤起），' \
                     f'等待时间（需要输入多条消息时，等待下一条消息的时长，默认为{DEFAULT_WAIT}秒）和其他说明。' \
                     f'标明“受限”的插件仅限部分平台或部分用户使用，其他情况下会被忽略。' \
                     f'不同插件有优先级，符合多条插件关键词的消息会有限唤起高优先级的插件。' \
                     f'部分插件可以通过“插件关键词 帮助”的形式查看更详细的使用说明。\n\n'
-        with open(os.path.join('..', 'data', 'help_description.txt'), 'r') as f:
+        with open(os.path.join(DATA_DIR, 'help_description.txt'), 'r') as f:
             help_text += f.read()
+        # bug：在cqhttp中可能无法发送
         return ResponseMsg(help_text)
 
 

@@ -9,6 +9,7 @@ class Request:
         self.loc = None
         self.attachment = None
         self.echo = False
+        self.from_scheduler = False  # 表示来自schedule
 
     def new(self, msg=None, img=None):
         new_req = Request()
