@@ -64,11 +64,11 @@ def wechat2():
 @app.route('/upload', methods=['POST', 'GET'])
 def upload():
     def allowed_file(filename):
-        # 打印功能关闭时为False
-        return False
-        # return '.' in filename and filename.rsplit('.', 1)[1] in set(['doc', 'docx', 'pdf'])
+        return '.' in filename and filename.rsplit('.', 1)[1] in set(['doc', 'docx', 'pdf'])
 
     if flask.request.method == 'POST':
+        return '远程打印功能关闭'
+
         # 通过file标签获取文件
         f = flask.request.files['file']
         if not (f and allowed_file(f.filename)):
@@ -77,7 +77,7 @@ def upload():
                                    datetime.datetime.now().strftime('WebPrinter_%Y%m%d_' + str(f.filename)))
         f.save(upload_path)
         win32api.ShellExecute(0, "print", upload_path,
-                              '/d:"%s"' % win32print.GetDefaultPrinter (), ".", 0)
+                              '/d:"%s"' % win32print.GetDefaultPrinter(), ".", 0)
         return "upload success!"
     # 重新返回上传界面
     return flask.render_template('upload.html')

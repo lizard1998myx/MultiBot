@@ -255,6 +255,7 @@ async def schedule(bot: Wechaty):
     request = Request()
     request.platform = 'Wechat'
     request.user_id = ''
+    request.from_scheduler = True
 
     # 初始化分拣中心
     distributor = DistributorCron()

@@ -14,10 +14,11 @@ def format_filename(header='MultiBot', type='image', post='.txt'):
     return datetime.datetime.now().strftime(f'{header}_{type}_%Y%m%d-%H%M%S{post}')
 
 
-def image_url_to_path(url, header='MultiBot'):
+def image_url_to_path(url, header='MultiBot', filename=None):
     resp = requests.get(url)
     image = Image.open(BytesIO(resp.content))
-    filename = image_filename(header=header)
+    if filename is None:
+        filename = image_filename(header=header)
     abs_dir = TEMP_DIR
     abs_path = os.path.join(abs_dir, filename)
     try:

@@ -29,7 +29,7 @@ class UserNoteSession(ArgSession):
         password = str(self.arg_dict['password'].value)
 
         df = pd.read_excel(TOTAL_TABLE, dtype=str)
-        notes = df[(df['username'] == username)&(df['password'] == password)]['note'].values
+        notes = df[(df['username'] == username) & (df['password'] == password)]['note'].values
 
         if len(notes) == 0:
             return ResponseMsg(f'【{self.session_type}】未找到符合的条目，请检查输入信息。如有疑问请在群里咨询')

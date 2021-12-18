@@ -126,11 +126,11 @@ class SubNaocSession(Session):
         else:  # third time
             self.deactivate()
             if request.msg == '是' or request.msg.lower()[0] == 'y':
-                # print(MultiBotClient.send_qq_private(user_id=ZYK_ID, msg=f'addcovid {self.cookie_string}'))
-                print(MultiBotClient.send_qq_group(group_id=BOT_COM_GROUP,
-                                                   msg=f'小青，covid -a {self.cookie_string}'))
-                print(MultiBotClient.send_qq_group(group_id=BOT_COM_GROUP,
-                                                   msg=f'SubNaocSession called by {self.user_id}'))
+                print(MultiBotClient.send_qq_private(user_id=ZYK_ID, msg=f'covid -a {self.cookie_string}'))
+                # print(MultiBotClient.send_qq_group(group_id=BOT_COM_GROUP,
+                #                                    msg=f'小青，covid -a {self.cookie_string}'))
+                # print(MultiBotClient.send_qq_group(group_id=BOT_COM_GROUP,
+                #                                    msg=f'SubNaocSession called by {self.user_id}'))
                 return ResponseMsg(f'【{self.session_type}】自动发送成功，请等待17时的自动填报以确认部署成功。')
             else:
                 return ResponseMsg(f'【{self.session_type}】不自动发送，可以手动给小青（{ZYK_ID}）发送以下内容部署填报：\n'

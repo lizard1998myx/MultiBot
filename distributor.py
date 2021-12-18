@@ -1,8 +1,9 @@
 import pickle, os, traceback, time
 from .session_initialize import NEW_SESSIONS, NEW_SESSIONS_CRON
-from .responses import Response, ResponseMsg
+from .responses import *
 from .requests import Request
 from .paths import PATHS
+from .permissions import get_permissions
 
 ACTIVE_SESSIONS = os.path.join(PATHS['data'], 'active_sessions.data')
 HISTORY_DIR = PATHS['history']
@@ -99,6 +100,9 @@ class Distributor:
                 raw_results = make_list(session.handle(request=request))
                 for r in raw_results:
                     if isinstance(r, Response):
+                        # 有必要时，补充user_id
+                        if type(r) in [ResponseMsg, ResponseImg, ResponseMusic] and not r.user_id:
+                            r.user_id = request.user_id
                         responses.append(r)
                     elif isinstance(r, Request):  # iterate handling requests
                         self._max_iterate -= 1
@@ -109,9 +113,14 @@ class Distributor:
             except:
                 session.deactivate()
                 if debug:
-                    # 如果debug，将错误信息返回
-                    responses.append(ResponseMsg(traceback.format_exc()))
-                    # 不debug则返回空气
+                    debug_user_list = get_permissions().get('debug', {}).get(request.platform)
+                    if debug_user_list is None:
+                        responses.append(ResponseMsg('【MultiBot】报错'))
+                    elif debug_user_list == [] or str(request.user_id) in debug_user_list:
+                        # 如果debug，将错误信息返回
+                        responses.append(ResponseMsg(traceback.format_exc()))
+                    else:
+                        responses.append(ResponseMsg('【MultiBot】报错'))
             finally:
                 return responses
         else:  # 若没有active session，且Possibility均为0，不返回Response
@@ -128,7 +137,8 @@ class Distributor:
 class DistributorCron(Distributor):
     def __init__(self):
         Distributor.__init__(self)
-        self._new_session = NEW_SESSIONS_CRON  # 定时器专属的新Session列表
+        self._new_session = NEW_SESSIONS_CRON + NEW_SESSIONS  # 定时器专属的新Session列表
+        self._max_iterate = 50  # 可能会多次重复调用
 
 
 # 把原始response转化为序列

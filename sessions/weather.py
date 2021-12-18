@@ -16,7 +16,6 @@ class WeatherSession(ArgSession):
         self.session_type = '天气插件'
         self.strict_commands = ['weather', '天气']
         self.description = '根据给定的地点查找经纬度，并从彩云天气API（caiyunapp.com）获取实时天气'
-        # self.is_first_time = True
         self.arg_list = [Argument(key='location', alias_list=['-l', '-loc'], required=True,
                                   get_next=True, get_all=True,
                                   ask_text='请返回要查找的地点或经纬度（逗号隔开）'),
@@ -59,7 +58,7 @@ class WeatherSession(ArgSession):
                                   '风力图的获取方法如“天气 北京市 -nr -wmap -wd 1 -wh 6 -wl 60 -wdl 5 -wfs 20”。'
 
     def is_legal_request(self, request):
-        if not self.is_first_time and request.loc is not None:
+        if not self._is_first_time and request.loc is not None:
             return True
         else:
             return self._text_request_only(request)
@@ -311,8 +310,8 @@ class WeatherAPI:
         ln0a = self._next_day_plotter(axs[0], temp, label='Temperature', plot_kwargs={'color': 'orangered'})
 
         # preset temperature limits
-        ymin_set = 0
-        ymax_set = 30
+        ymin_set = -10
+        ymax_set = 20
         # move up
         while np.max(temp['value']) > ymax_set:
             ymax_set += 10
@@ -394,7 +393,7 @@ class WeatherAPI:
         fig.savefig(filename)
 
     def auto_plot_wind_map(self, length_km, delta_km, filename, delta_days=1, hour=12, figsize=8, max_points=100):
-        # wind map on BaiduMap
+        # overlay wind map on BaiduMap
         # optimized with threading
 
         earth_radius = 6378  # constant, km
@@ -440,8 +439,12 @@ class WeatherAPI:
         for i in range(nx):
             thread_list = []
             for j in range(ny):
-                thread_list.append(WapiThread(wapi=wapi_array[i][j], delta_days=delta_days, probability=probability))
-                thread_list[-1].start()
+                thread_list.append(WapiThread(wapi=wapi_array[i][j], delta_days=delta_days))
+                if random.random() > probability:
+                    # 以一定概率（1-p）抛弃此数据点
+                    thread_list[-1].fail_reason = 'abandoned'
+                else:
+                    thread_list[-1].start()
             thread_array.append(thread_list)
 
         # wait until completion
@@ -523,7 +526,16 @@ class WeatherAPI:
                                yy[0] - delta_deg / 2, yy[-1] + delta_deg / 2))
         ax.set_xlabel('Longitude [deg]')
         ax.set_ylabel('Latitude [deg]')
-        ax.set_title(f'Wind Forcast at {hour:02d}:00 ({len(xlist)}/{nx*ny} points with {n_unexpected_errors} errors)')
+
+        # set title
+        title = f'Wind Map {hour:02d}:00'
+        if len(xlist) != (nx*ny):
+            title += f'({len(xlist)}/{nx*ny} points'
+            if n_unexpected_errors > 0:
+                title += f' with {n_unexpected_errors} errors'
+            title += ')'
+
+        ax.set_title(title)
         fig.tight_layout()
         fig.savefig(filename)
 
@@ -533,22 +545,16 @@ class WeatherAPI:
 
 # optimize with threadings
 class WapiThread(threading.Thread):
-    def __init__(self, wapi, delta_days, probability=1):
+    def __init__(self, wapi, delta_days):
         threading.Thread.__init__(self)
         self.wapi = wapi
         self.delta_days = delta_days
-        self.probability = probability
         self.wind = None
         self.success = False
         self.unexpected_error = False
         self.fail_reason = ''
 
     def run(self):
-        if random.random() > self.probability:
-            # 以一定概率（1-p）抛弃此数据点
-            print('rejected')
-            self.fail_reason = 'abandoned'
-            return
         try:
             max_connection_retries = 3
             retries = 0

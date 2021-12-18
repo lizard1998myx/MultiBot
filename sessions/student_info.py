@@ -2,10 +2,12 @@ import csv, datetime, difflib, os
 from .general import Session
 from ..responses import ResponseMsg
 from ..paths import PATHS
+from ..permissions import get_permissions
 
 
 INFO_TABLE = os.path.join(PATHS['data'], 'GNB_student_info.csv')
 TOTAL_TABLE = os.path.join(PATHS['data'], 'GNB_total_info.csv')
+PERM_LIST = get_permissions().get('InfoSession', {})
 
 
 class InfoSession(Session):
@@ -15,7 +17,7 @@ class InfoSession(Session):
         self.session_type = '学生信息搜索'
         self.strict_commands = ['搜索', '查找', 'search']
         self.description = '从数据库中搜索学生信息'
-        self.permissions = {'Console': [], 'CQ': ['315887212', '378277058']}
+        self.permissions = PERM_LIST
         self.is_first_time = True
 
     def handle(self, request):

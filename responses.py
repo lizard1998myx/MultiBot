@@ -4,21 +4,24 @@ class Response:
 
 
 class ResponseMsg(Response):
-    def __init__(self, text=''):
+    def __init__(self, text='', user_id=''):
         Response.__init__(self)
+        self.user_id = user_id  # optional
         self.text = text
         self.at_list = []
 
 
 class ResponseImg(Response):
-    def __init__(self, file=''):
+    def __init__(self, file='', user_id=''):
         Response.__init__(self)
+        self.user_id = user_id  # optional
         self.file = file
 
 
 class ResponseMusic(Response):
-    def __init__(self, name=None, singer=None, link=None, music_id=None, platform=None):
+    def __init__(self, name=None, singer=None, link=None, music_id=None, platform=None, user_id=''):
         Response.__init__(self)
+        self.user_id = user_id  # optional
         self.name = name
         self.singer = singer
         self.link = link

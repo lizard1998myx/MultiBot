@@ -3,11 +3,15 @@ from .general import Session
 from ..api_tokens import TURING_API_KEY
 import requests, json, re
 
+# 2021-12-11: 加入重新调用天气和翻译插件的部分
+
 
 class TuringSession(Session):
     def __init__(self, user_id):
         Session.__init__(self, user_id=user_id)
         self._max_delta = 3
+        self._time_called = 0
+        self._max_time_called = 5
         self.session_type = '图灵接口'
         self.description = '来自图灵API（turingapi.com）的聊天机器人'
 
@@ -16,14 +20,37 @@ class TuringSession(Session):
         return 30
 
     def handle(self, request):
+        # 防止死循环多次调用
+        self._time_called += 1
+        if self._time_called >= self._max_time_called:
+            self.deactivate()
+
         reply = self.call_turing_api(msg=request.msg)
         if reply:
+            # 防止死循环
             if reply in ['请求次数超限制!', 'userId格式不合法!']:
+                self.deactivate()
                 return []
-            response = ResponseMsg(reply)
+            # 天气插件重新调用
+            elif '天气' in request.msg:
+                self.deactivate()
+                new_req = request.new(msg=f'天气 {reply.split(":")[0]}')
+                return [ResponseMsg(reply),
+                        ResponseMsg(f'【{self.session_type}】尝试转到天气插件...'),
+                        new_req]
+            # 翻译插件重新调用
+            elif len(request.msg) >= 2 and '翻译' == request.msg[:2]:
+                self.deactivate()
+                new_req = request.new(msg=f'翻译 {request.msg[2:]}')
+                return [ResponseMsg(reply),
+                        ResponseMsg(f'【{self.session_type}】尝试转到翻译插件...'),
+                        new_req]
+            # 不需要重新调用时
+            else:
+                return ResponseMsg(reply)
         else:
-            response = ResponseMsg('【%s】未得到回复' % self.session_type)
-        return response
+            self.deactivate()
+            return ResponseMsg('【%s】未得到回复' % self.session_type)
 
     def call_turing_api(self, msg):
         # 构造请求数据，代码参考了 https://docs.nonebot.dev/guide/tuling.html，有修改

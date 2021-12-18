@@ -41,7 +41,8 @@ class WebTemp:
 
     def touch(self, filename: str):
         self.refresh()
-        out = f'{time.time()}.{self.get_post(filename=filename)}'
+        # 加入一个随机数防止bug
+        out = f'{time.time()+random.random()}.{self.get_post(filename=filename)}'
         shutil.copy(filename, self.get_absdir(out))
         return f'/static/temp/{out}'
 

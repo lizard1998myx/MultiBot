@@ -74,7 +74,7 @@ class WCPublicPorter:
             else:
                 total_reply_str += '[MultiBotWCP] Response类型不支持：%s' % str(response)
         if len(total_reply_str) > 600:
-            total_reply_str = total_reply_str[:596] + '\n...'
+            total_reply_str = total_reply_str[:(600-35)] + '\n\n...(字数超出微信公众平台限制，请发送“网页”到网页版查看全文)'
         return wechatpy.replies.TextReply(content=total_reply_str, message=source_msg)
 
     @staticmethod
