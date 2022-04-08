@@ -2,12 +2,12 @@ from ...requests import Request
 from ...responses import *
 from ...distributor import Distributor
 from ...paths import PATHS
-import flask, html, random, traceback, shutil, os, time
-
+import flask, html, random, traceback, shutil, os, time, sys
 
 PLATFORM = 'WebApp'
 app = flask.Flask(__name__)
 app.static_folder = 'static'
+# debug disabled by default in flask
 
 
 class WebTemp:
@@ -118,8 +118,8 @@ def get_bot_response():
     return str(WebAppPorter.interface(userText, user_id=user_id))
 
 
-def main():
-    app.run()
+def main(kwargs):
+    app.run(**kwargs)
 
 
 # ————————————————
