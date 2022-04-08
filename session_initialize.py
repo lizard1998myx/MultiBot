@@ -27,10 +27,15 @@ from .sessions.subnaoc_exp import SubNaocExpSession
 from .sessions.user_note_search import UserNoteSession
 from .sessions.wake_on_lan import WolSession
 from .sessions.subscription import AddQQSubscriptionSession, DelQQSubscriptionSession
-from .sessions.popular import NbnhhshSession, BookOfAnswersSession, WebImgSession
+from .sessions.popular import NbnhhshSession, BookOfAnswersSession, WebImgSession, \
+                              FocusCubeSession, AsoulCnkiSession, UpSideDownTextSession
 from .sessions.perms_add import AddPermissionSession, DelPermissionSession
 from .sessions.astropy import AstroPlotSession
 from .sessions.cosmology import CosmoPlotSession
+from .sessions.ipv6addr import Ipv6AddrSession
+from .sessions.system_command import SystemCmdSession
+from .sessions.covid_data import CovidDataSession, CovidDataUpdateSession
+from .sessions.email_cas_trash import EmailCasTrashSession
 from .paths import PATHS
 import os
 
@@ -38,16 +43,19 @@ import os
 NEW_SESSIONS = [IntroSession, DescriptionSession, VersionSession, HelpSession, ErrorSession, HistorySession,
                 StandbySession, RepeatSession, IdentitySession, CounterSession, TuringSession, InfoSession,
                 OcrSession, ActiveAudioSession, PassiveAudioSession,
-                WeatherSession, TranslationSession, NbnhhshSession, BookOfAnswersSession, WebImgSession,
+                WeatherSession, TranslationSession,
+                NbnhhshSession, BookOfAnswersSession, WebImgSession,
+                FocusCubeSession, AsoulCnkiSession, UpSideDownTextSession,
                 SubcovidSession, SubucassikSession, SepLoginSession, SubNaocSession, SubNaocExpSession,
+                EmailCasTrashSession,
                 UserNoteSession,
                 DeCodeSession, EnCodeSession, WolSession,
                 ClassroomScheduleSession, ClassroomScheduleUpdateSession,
-                CovidRiskSession, CovidRiskUpdateSession,
+                CovidRiskSession, CovidRiskUpdateSession, CovidDataSession, CovidDataUpdateSession,
                 ArxivSession, AstroPlotSession, CosmoPlotSession, AutoBaiduSession, MusicSession,
                 AutoAnswerSession, AddAnswerSession, AutoAliasSession, AddAliasSession,
                 AddQQSubscriptionSession, DelQQSubscriptionSession,
-                AddPermissionSession, DelPermissionSession,
+                AddPermissionSession, DelPermissionSession, Ipv6AddrSession, SystemCmdSession,
                 CQCommandSession, CQRebootSession, CQGroupSuicideSession, CQGroupRandomSession]
 
 # 定时任务中启用的sessions
