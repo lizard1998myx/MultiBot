@@ -1,10 +1,10 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import StaleElementReferenceException
 from .argument import ArgSession, Argument
 from ..responses import ResponseMsg
 from ..paths import PATHS
 import os, pickle, datetime
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import StaleElementReferenceException
 
 
 CACHE_DIR = PATHS['cache']
@@ -33,8 +33,11 @@ class CovidRiskSession(ArgSession):
         if self.arg_dict['no-cache'].called or not self.newser.load_cache():
             self.newser.load()
         region_keyword = self.arg_dict["region"].value.replace('中国', '').replace('全国', '')
-        return ResponseMsg(f'【{self.session_type}】\n'
-                           f'{self.newser.get_region(region_keyword=region_keyword)}')
+        msg = self.newser.get_region(region_keyword=region_keyword)
+        if msg:
+            return ResponseMsg(f'【{self.session_type}】\n{msg}')
+        else:  # empty
+            return ResponseMsg(f'【{self.session_type}】未找到该地区风险区数据。')
 
 
 class CovidRiskUpdateSession(ArgSession):

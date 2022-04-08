@@ -7,11 +7,6 @@ import os, csv, shutil, datetime, random
 BOX_DIR = PATHS['box']
 BOX_FILE = os.path.join(BOX_DIR, 'answer_box.csv')
 
-try:
-    os.mkdir(BOX_DIR)
-except FileExistsError:
-    pass
-
 if not os.path.exists(BOX_FILE):
     with open(BOX_FILE, 'a+', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=['question', 'answer_text', 'answer_img'])
@@ -86,7 +81,7 @@ class AutoAnswerSession(Session):
                 continue
             # add this item to the response list
             text = item['answer_text']
-            img = item['answer_img']
+            img = os.path.abspath(os.path.join(BOX_DIR, item['answer_img']))  # from relative path
             if text:
                 if command_is_to_choose:
                     responses_to_choose.append(ResponseMsg(text))
@@ -132,7 +127,7 @@ class AddAnswerSession(ArgSession):
             text = self.answer_text
             writer.writerow({'question': self.question,
                              'answer_text': text,
-                             'answer_img': self.answer_img})
+                             'answer_img': os.path.relpath(self.answer_img, BOX_DIR)})
 
     def info(self):
         text = '问题：{}'.format(self.question)

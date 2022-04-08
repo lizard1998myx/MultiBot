@@ -2,14 +2,20 @@ from .web_app import WebAppPorter
 from ..WCPublic.wcp_flask import WCPublicPorter, WCP_TOKEN
 from ...paths import PATHS
 import flask, hashlib, wechatpy, random
-import win32api, win32print, os, datetime
+import os, datetime, sys
+
+if sys.platform == 'win32':
+    import win32api, win32print
+    DEBUG = True
+else:
+    DEBUG = False  # disable debug in linux etc
 
 LOCAL_PORT = 13090
 TEMP_DIR = PATHS['temp']
 
 app = flask.Flask(__name__)
 app.static_folder = 'static'
-app.debug = True
+app.debug = DEBUG
 # app.send_file_max_age_default = datetime.timedelta(seconds=1)
 
 
@@ -76,9 +82,12 @@ def upload():
         upload_path = os.path.join(TEMP_DIR,
                                    datetime.datetime.now().strftime('WebPrinter_%Y%m%d_' + str(f.filename)))
         f.save(upload_path)
-        win32api.ShellExecute(0, "print", upload_path,
-                              '/d:"%s"' % win32print.GetDefaultPrinter(), ".", 0)
-        return "upload success!"
+        if sys.platform == 'win32':
+            win32api.ShellExecute(0, "print", upload_path,
+                                  '/d:"%s"' % win32print.GetDefaultPrinter(), ".", 0)
+            return "upload success!"
+        else:
+            return f"unable to print in {sys.platform}"
     # 重新返回上传界面
     return flask.render_template('upload.html')
 

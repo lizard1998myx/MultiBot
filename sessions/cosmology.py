@@ -1,11 +1,11 @@
-import numpy as np
-from scipy import integrate
-import matplotlib.pyplot as plt
-import os
 from ..utils import image_filename
 from .argument import ArgSession, Argument
 from ..responses import ResponseMsg, ResponseImg
 from ..paths import PATHS
+import numpy as np
+from scipy import integrate
+import matplotlib.pyplot as plt
+import os
 import traceback
 
 # 2021-12-14 迁移
@@ -279,22 +279,18 @@ class PlotFunc:
         rr = dens_r_0 * z_plus_1 ** 4
         ymax = np.max([rm, rl, rr])*10
         ymin = np.min([rm, rl, rr])/10
-        plt.plot(z_plus_1, rm, label='matter')
-        plt.plot(z_plus_1, rl, label='dark energy')
-        plt.plot(z_plus_1, rr, label='radiation')
-        plt.vlines(z_lm + 1, ymin, ymax, linestyles='--')
-        plt.vlines(z_rm + 1, ymin, ymax, linestyles='--')
-        plt.title('Cosmology Density')
-        plt.ylabel(r'Density / $\rm{kg\times m^{-3}}$')
-        plt.xlabel('1+z')
-        plt.xscale('log')
-        plt.yscale('log')
-        plt.xlim(zmin+1, zmax+1)
-        plt.ylim(ymin, ymax)
-        plt.legend()
-        plt.grid()
+        fig, ax = plt.subplots()
+        ax.plot(z_plus_1, rm, label='matter')
+        ax.plot(z_plus_1, rl, label='dark energy')
+        ax.plot(z_plus_1, rr, label='radiation')
+        ax.vlines(z_lm + 1, ymin, ymax, linestyles='--')
+        ax.vlines(z_rm + 1, ymin, ymax, linestyles='--')
+        ax.set(title='Cosmology Density', ylabel=r'Density / $\rm{kg\times m^{-3}}$', xlabel='1+z',
+               xscale='log', yscale='log', xlim=(zmin+1, zmax+1), ylim=(ymin, ymax))
+        ax.legend()
+        ax.grid()
+        fig.tight_layout()
         plt.savefig(filename)
-        plt.close()
 
     # 宇宙学距离
     @staticmethod
@@ -305,17 +301,14 @@ class PlotFunc:
                      r"$\rm{D_L}$": dcal.luminosity_distance}
         lg_z_plus_1 = np.arange(np.log10(zmin + 1), np.log10(zmax + 1), 0.01)
         z_plus_1 = 10 ** lg_z_plus_1
+        fig, ax = plt.subplots()
         for label, func in distances.items():
-            plt.plot(z_plus_1, np.array(list(map(func, z_plus_1 - 1))) / dcal.pc, label=label)
-        plt.title('Cosmology Distance')
-        plt.ylabel(r"Distance / pc")
-        plt.xlabel('1+z')
-        plt.xscale('log')
-        plt.yscale('log')
-        plt.legend()
-        plt.grid()
+            ax.plot(z_plus_1, np.array(list(map(func, z_plus_1 - 1))) / dcal.pc, label=label)
+        ax.set(title='Cosmology Distance', ylabel=r"Distance / pc", xlabel='1+z', xscale='log', yscale='log')
+        ax.legend()
+        ax.grid()
+        fig.tight_layout()
         plt.savefig(filename)
-        plt.close()
 
     # 气体Jeans质量
     @staticmethod
@@ -331,15 +324,13 @@ class PlotFunc:
         temp = 1e8
         l_j = dcal.jeans_length_gas(rho=rho, T=temp)
         m_j = dcal.jeans_mass(rho=rho, l_j=l_j) / dcal.m_sun
-        plt.plot(z_plus_1, m_j)
-        plt.title('gas Jeans mass (O_b0=0.0484)')
-        plt.ylabel("Jeans Mass [$M_\odot$]")
-        plt.xlabel('1+z')
-        plt.xscale('log')
-        plt.yscale('log')
-        plt.grid()
+        fig, ax = plt.subplots()
+        ax.plot(z_plus_1, m_j)
+        ax.set(title='gas Jeans mass (O_b0=0.0484)', ylabel="Jeans Mass [$M_\odot$]", xlabel='1+z',
+               xscale='log', yscale='log')
+        ax.grid()
+        fig.tight_layout()
         plt.savefig(filename)
-        plt.close()
 
     # 两种宇宙学的linear growth rate
     @staticmethod
@@ -359,16 +350,14 @@ class PlotFunc:
         lg_z_plus_1 = np.arange(np.log10(zmin + 1), np.log10(zmax + 1), 0.01)
         z_plus_1 = 10 ** lg_z_plus_1
 
+        fig, ax = plt.subplots()
         for label, universe in {'EdS': cosmo_EdS, 'LCDM': cosmo_LCDM, 'your': cosmo}.items():
             D_0 = universe.growth_factor(0.)
-            plt.plot(z_plus_1, np.array(list(map(universe.growth_factor, z_plus_1 - 1))) / D_0, label=label)
+            ax.plot(z_plus_1, np.array(list(map(universe.growth_factor, z_plus_1 - 1))) / D_0, label=label)
 
-        plt.title('D(z) in cosmo')
-        plt.ylabel("linear growth factor D(z)")
-        plt.xlabel('1+z')
-        plt.xscale('log')
+        ax.set(title='D(z) in cosmo', ylabel="linear growth factor D(z)", xlabel='1+z', xscale='log')
         # plt.yscale('log')
-        plt.legend()
-        plt.grid()
+        ax.legend()
+        ax.grid()
+        fig.tight_layout()
         plt.savefig(filename)
-        plt.close()

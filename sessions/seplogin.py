@@ -1,10 +1,10 @@
-import requests, os, bs4
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from .argument import ArgSession, Argument
 from ..responses import ResponseMsg, ResponseImg
 from ..utils import format_filename
 from ..paths import PATHS
+import requests, os, bs4
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 
 TEMP_DIR = PATHS['temp']
 webdriver_dir = PATHS['webdriver']

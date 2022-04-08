@@ -7,6 +7,7 @@ from selenium.webdriver.chrome.options import Options
 
 
 CACHE_DIR = PATHS['cache']
+webdriver_dir = PATHS['webdriver']
 
 
 class ClassroomScheduleSession(ArgSession):
@@ -105,14 +106,16 @@ class ClassroomScheduleUpdateSession(ArgSession):
 class ScheduleFinder:
     def __init__(self, target=datetime.date.today(), campus_id=3, enable_cache=True):
         self.target_date = target
-        # self.first_day = datetime.date(2021, 3, 8)
-        self.first_day = datetime.date(2021, 8, 30)
-        self.term_id = '67862'  # Fall semester 2021
+        # self.term_id = '67862'  # Fall semester 2021
+        # self.first_day = datetime.date(2021, 8, 30)
+        self.term_id = '67863'  # Spring semester 2022
+        self.first_day = datetime.date(2022, 2, 21)
         self.campus_id = campus_id  # Yanqi Lake=3, Yuquan Road=1, Zhongguan Village=2
         self.calender = self._get_calender()
         self.schedule_list = []
         self.enable_cache = enable_cache
         self.cache_dir = CACHE_DIR
+        self.webdriver_dir = webdriver_dir
 
     def _get_calender(self):
         delta = (self.target_date - self.first_day).days
@@ -196,11 +199,9 @@ class ScheduleFinder:
         return bs4.BeautifulSoup(r1.text, 'html.parser')
 
     def _get_soup_with_selenium(self):
-        webdriver_dir = r'C:\Users\Yuxi\PycharmProjects\untitled\chromedriver.exe'
-
         chrome_options = Options()
         chrome_options.add_argument('--headless')
-        driver = webdriver.Chrome(chrome_options=chrome_options, executable_path=webdriver_dir)
+        driver = webdriver.Chrome(chrome_options=chrome_options, executable_path=self.webdriver_dir)
         try:
             url = f'http://jwjz.ucas.ac.cn/jiaowu/classroom/allclassroomforquery0.asp?term={self.term_id}'
             driver.get(url=url)

@@ -17,7 +17,11 @@ class WolSession(ArgSession):
                                   help_text='密码口令，符合才可唤醒'),
                          Argument(key='macaddress', alias_list=['-mac'],
                                   default_value='B0:7B:25:1F:41:EF',
-                                  help_text='目标MAC地址')]
+                                  help_text='目标MAC地址'),
+                         Argument(key='broadcast-ip', alias_list=['-ip'],
+                                  default_value='192.168.31.255',
+                                  help_text='目标广播ip地址')
+                         ]
         self._password = '2333'
         self.detail_description = '仅供管理员使用，输入密码远程启动计算机。'
 
@@ -25,8 +29,9 @@ class WolSession(ArgSession):
         self.deactivate()
         if str(self.arg_dict['password'].value) == self._password:
             mac_addr = self.arg_dict['macaddress'].value
+            broadcast_ip = self.arg_dict['broadcast-ip'].value
             try:
-                wake_on_lan(mac_addr)
+                wake_on_lan(mac_addr, broadcast_ip=broadcast_ip)
                 return ResponseMsg(f'【{self.session_type}】已对{mac_addr}发送唤醒指令')
             except ValueError:
                 return ResponseMsg(f'【{self.session_type}】MAC地址格式错误')
@@ -35,7 +40,7 @@ class WolSession(ArgSession):
 
 
 # from https://www.douban.com/note/300037894/
-def wake_on_lan(macaddress):
+def wake_on_lan(macaddress, broadcast_ip='255.255.255.255'):
     if len(macaddress) == 12:
         pass
     elif len(macaddress) == 12 + 5:
@@ -50,5 +55,5 @@ def wake_on_lan(macaddress):
         send_data = send_data + byte_dat
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    sock.sendto(send_data, ('255.255.255.255', 7))
+    sock.sendto(send_data, (broadcast_ip, 7))
     sock.close()

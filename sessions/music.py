@@ -1,10 +1,10 @@
+from .argument import Argument, ArgSession
+from ..responses import ResponseMusic, ResponseMsg
+from ..paths import PATHS
 import re, requests
 from selenium import webdriver
 import urllib
 from selenium.webdriver.chrome.options import Options
-from .argument import Argument, ArgSession
-from ..responses import ResponseMusic, ResponseMsg
-from ..paths import PATHS
 
 # 2021-12-12: 支持api，优化点歌
 webdriver_dir = PATHS['webdriver']

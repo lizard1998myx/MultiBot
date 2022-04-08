@@ -7,11 +7,6 @@ import os, csv
 BOX_DIR = PATHS['box']
 BOX_FILE = os.path.join(BOX_DIR, 'alias_box.csv')
 
-try:
-    os.mkdir(BOX_DIR)
-except FileExistsError:
-    pass
-
 if not os.path.exists(BOX_FILE):
     with open(BOX_FILE, 'a+', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=['key', 'value'])

@@ -2,7 +2,7 @@ from ..responses import ResponseMsg
 from .argument import ArgSession, Argument
 from ..permissions import PERM_FILE, PERM_KEYS, get_permissions
 import pandas as pd
-import os, datetime
+import os
 
 
 class AddPermissionSession(ArgSession):
@@ -74,7 +74,7 @@ class DelPermissionSession(ArgSession):
         self.permissions = get_permissions().get('super', {})
         self.arg_list = [Argument(key='n_items', alias_list=['-n'],
                                   required=False, get_next=True,
-                                  default_value = 10,
+                                  default_value=10,
                                   help_text='查阅的条目数')]
         self.default_arg = None  # 没有缺省argument
         self.detail_description = '寻找并删除权限条目，只有属于最高权限的用户可以执行'

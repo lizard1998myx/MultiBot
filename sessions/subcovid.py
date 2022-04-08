@@ -2,6 +2,7 @@ from .general import Session
 from ..responses import ResponseMsg
 from ..paths import PATHS
 import pytz, datetime, requests, csv, os, threading, time
+import pandas as pd
 
 ACCOUNT_LIST = os.path.join(PATHS['data'], 'subcovid_account_list.csv')
 COOKIE_LIST = os.path.join(PATHS['data'], 'subcovid_cookie_list.csv')
@@ -13,7 +14,7 @@ class SubcovidSession(Session):
         Session.__init__(self, user_id=user_id)
         self._max_delta = 3*60
         self.session_type = '自动填报插件'
-        self.strict_commands = ['covid', '疫情', '填报']
+        self.strict_commands = ['疫情填报', '填报', '国科大填报']
         self.description = '登记自动疫情填报，用于定时任务，唤起本插件以查看更多'
         self.is_first_time = True
         self.is_second_time = False
@@ -25,15 +26,23 @@ class SubcovidSession(Session):
         if self.is_first_time:
             self.is_first_time = False
             self.is_second_time = True
-            return ResponseMsg("【%s】\n" % self.session_type +
-                               "本插件基于github上的IanSmith123/ucas-covid19项目。" +
-                               "原理是使用SEP账号密码登录一次获取cookies（临时身份证明），保存cookies，" +
-                               "每天凌晨5点延续前一天的填报内容自动打卡（或回复“运行”手动执行）。\n\n" +
-                               "如果填报信息有变动（如离校/返校），请在凌晨12点到5点之间手动填报一次；" +
-                               "若由于代码更新等原因暂停填报，会在机器人测试群内告知。\n\n" +
-                               "警告：程序不主动保存账号密码，但后者会不可避免地被存到聊天记录中，" +
-                               "建议部署前修改SEP密码，当然，更安全的方式是自己部署。\n\n" +
-                               "请仔细阅读上述条款，若无异议，请回复“同意”")
+            notes_v1 = (f"【{self.session_type}】\n"
+                        f"本插件基于github上的IanSmith123/ucas-covid19项目。"
+                        f"原理是使用SEP账号密码登录一次获取cookies（临时身份证明），保存cookies，"
+                        f"每天凌晨5点延续前一天的填报内容自动打卡（或回复“运行”手动执行）。\n\n"
+                        f"如果填报信息有变动（如离校/返校），请在凌晨12点到5点之间手动填报一次；"
+                        f"若由于代码更新等原因暂停填报，会在机器人测试群内告知。\n\n"
+                        f"警告：程序不主动保存账号密码，但后者会不可避免地被存到聊天记录中，"
+                        f"建议部署前修改SEP密码，当然，更安全的方式是自己部署。\n\n"
+                        f"请仔细阅读上述条款，若无异议，请回复“同意”")
+            notes_v2 = (f"【{self.session_type}】\n"
+                        f"本插件基于github上的IanSmith123/ucas-covid19项目。"
+                        f"服务器凌晨5点左右自动续报，若信息变动（如离校/返校），请在凌晨12点后手动填报一次。\n\n"
+                        f"注意！！！！\n"
+                        f"本程序仅用于解决忘记打卡这一问题，本人不对因为滥用此程序造成的后果负责，"
+                        f"请在合理且合法的范围内使用本程序。\n\n"
+                        f"请仔细阅读上述条款，若无异议，请回复“同意”")
+            return ResponseMsg(notes_v2)
         elif self.is_second_time:
             self.is_second_time = False
             if request.msg == '同意':
@@ -204,6 +213,18 @@ def submit(s: requests.Session, old: dict, cookie=None):
         raise ValueError('提交失败：%s' % r.json().get("m"))
 
 
+# get yesterday infos automatically
+def get_info(csv_filename):
+    df = pd.read_csv(csv_filename)
+    new_records = []
+    for cookie in df.to_dict('records'):
+        s = requests.Session()
+        yesterday = get_daily(s=s, cookie=cookie)
+        cookie.update(yesterday)
+        new_records.append(cookie)
+    return new_records
+
+
 def run(user=None, passwd=None, cookie=None):
     s = requests.Session()
     if cookie is None:
@@ -253,7 +274,8 @@ class SubThread(threading.Thread):
 
 
 def daily_run_demo():
-    user_list = read_cookie_list() + read_account_list()
+    # user_list = read_cookie_list() + read_account_list()
+    user_list = read_cookie_list()
     thread_list = []
     for user_dict in user_list:
         thread_list.append(SubThread(user_dict=user_dict))
@@ -288,4 +310,3 @@ def daily_run_demo():
         return {'success': success, 'fail': -1*fail, 'reasons': reasons}
     else:
         return {'success': success, 'fail': fail, 'reasons': reasons}
-

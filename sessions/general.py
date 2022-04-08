@@ -1,7 +1,7 @@
 from ..responses import ResponseMsg, ResponseImg
 from ..version_description import DESCRIPTION, VERSION_LIST, INTRODUCTION
 from ..paths import PATHS
-import datetime, os, re
+import datetime, os, csv
 
 DEFAULT_WAIT = 10
 HISTORY_DIR = PATHS['history']
@@ -237,20 +237,65 @@ class HistorySession(Session):
         Session.__init__(self, user_id=user_id)
         self.session_type = '插件使用历史'
         self.strict_commands = ['history', '历史']
+        self._history_table_file = os.path.join(HISTORY_DIR, 'history.csv')
+
+    # V3.3.2 优化文件性能
+    def _merge_history_file(self):
+        keys = ['platform', 'user_id', 'session', 'time']
+        new_history_records = []
+        files_to_remove = []
+        if not os.path.exists(self._history_table_file):
+            new_row = {}
+            for k in keys:
+                new_row[k] = k
+            new_history_records.append(new_row)
+        for file in os.listdir(HISTORY_DIR):
+            if file[-4:] == '.txt':
+                files_to_remove.append(file)
+                history_record = {}
+                with open(os.path.join(HISTORY_DIR, file), 'r') as f:
+                    lines = f.readlines()
+                for i, k in enumerate(keys):
+                    history_record[k] = lines[i].strip().replace(f'{k}=', '')
+                if history_record['session'] in ['QQ定时任务', '插件使用历史']:  # ignore list
+                    pass
+                else:
+                    new_history_records.append(history_record)
+
+        with open(self._history_table_file, 'a+', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=keys)
+            for row in new_history_records:
+                writer.writerow(row)
+
+        for file in files_to_remove:
+            try:
+                os.remove(os.path.join(HISTORY_DIR, file))
+            except FileNotFoundError:
+                pass
 
     def handle(self, request):
         self.deactivate()
-        history_file_list = os.listdir(HISTORY_DIR)
+
+        # merge
+        self._merge_history_file()
+
+        # read
+        session_list = []
+        try:
+            with open(self._history_table_file, 'r') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    session_list.append(row['session'])
+        except FileNotFoundError:
+            pass
+
+        # count & print
         history_dict = {}
-        for file in history_file_list:
-            file_split = file.split('_')
-            if len(file_split) == 3:
-                platform = file_split[0]
-                session = file_split[1]
-                if session in history_dict.keys():
-                    history_dict[session] += 1
-                else:
-                    history_dict[session] = 1
+        for session in session_list[::-1]:  # new ones come first
+            if session in history_dict.keys():
+                history_dict[session] += 1
+            else:
+                history_dict[session] = 1
         history_text = f'[{self.session_type}]\n'
         for s, i in history_dict.items():
             history_text += f'{s}[{i}], '

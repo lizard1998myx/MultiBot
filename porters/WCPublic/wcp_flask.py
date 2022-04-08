@@ -1,16 +1,21 @@
-import hashlib, flask, wechatpy, requests, logging, os, traceback
+import hashlib, flask, wechatpy, requests, logging, os, traceback, sys
 from ...requests import Request
 from ...responses import *
 from ...distributor import Distributor
 from ...utils import image_url_to_path
 from ...api_tokens import WCP_APP_ID, WCP_APP_SECRET, WCP_TOKEN
 
+if sys.platform == 'win32':
+    DEBUG = True
+else:
+    DEBUG = False  # disable debug in linux etc
+
 PLATFORM = 'WCP'
 LOCAL_PORT = 13090
 
 logging.basicConfig(level=logging.DEBUG, format=' %(asctime)s - %(levelname)s - %(message)s')
 app = flask.Flask(__name__)
-app.debug = True
+app.debug = DEBUG
 
 
 class WCPublicPorter:
