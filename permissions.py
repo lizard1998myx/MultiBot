@@ -4,9 +4,9 @@ import os
 
 # columns: type, platform, user_id
 PERM_FILE = os.path.join(PATHS['data'], 'permissions.xlsx')
-PERMS = [{'debug': 'Console',
-          'debug': 'WebApp',
-          'super': 'Console'}]
+PERMS = [{'type': 'debug', 'platform': 'Console', 'user_id': 'all'},
+         {'type': 'debug', 'platform': 'WebApp', 'user_id': 'all'},
+         {'type': 'super', 'platform': 'Console', 'user_id': 'all'},]
 # columns: type, key
 PERM_KEY_FILE = os.path.join(PATHS['data'], 'permission_keys.xlsx')
 PERM_KEYS = {'super': 'default_key',
@@ -29,7 +29,7 @@ except FileNotFoundError:
 # 更新权限文件
 if not os.path.exists(PERM_FILE):
     records = []
-    for k, v in PERM_KEYS.items():
+    for k, v in PERMS.items():
         records.append({'type': k, 'platform': v, 'user_id': 'all'})
     pd.DataFrame(records).to_excel(PERM_FILE, index=False)
 
