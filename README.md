@@ -19,3 +19,27 @@ sessions目录下有一些插件可供参考
 ## 说明
 
 已更新3.3.6版本，要求python版本在3.8以上，否则无法解析f字符串
+
+## 安装
+
+```sh
+$ cd /home
+$ git clone https://github.com/lizard1998myx/MultiBot
+$ pip install -r ./MultiBot/requirements
+```
+
+## 使用
+
+```python
+import MultiBot
+MultiBot.integrate_server_main()  # 第一种：运行命令行版本
+MultiBot.integrate_web_main()  # 第二种：运行Web版本
+```
+
+### 可能的问题
+
+import时遇到“Unable to find zbar shared library”：
+
+```sh
+$ apt install libzbar-dev
+```
