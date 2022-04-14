@@ -1,5 +1,6 @@
 from .general import Session
 from ..responses import ResponseMsg
+from .argument import Argument, ArgSession
 from ..paths import PATHS
 import pytz, datetime, requests, csv, os, threading, time
 import pandas as pd
@@ -9,6 +10,53 @@ COOKIE_LIST = os.path.join(PATHS['data'], 'subcovid_cookie_list.csv')
 COOKIE_INFO_LIST = os.path.join(PATHS['data'], 'subcovid_cookie_list_info.csv')
 
 
+# 2022-04-11 Manual SubCovid
+class SubcovidManualSession(ArgSession):
+    def __init__(self, user_id):
+        ArgSession.__init__(self, user_id=user_id)
+        self._max_delta = 3*60
+        self.session_type = '手动填报插件'
+        self.strict_commands = ['手动填报']
+        self.description = '通过cookie手动进行疫情填报，配合订阅进行定时任务'
+        self.arg_list = [Argument(key='uukey', alias_list=['-u'],
+                                  required=True, get_next=True,
+                                  help_text='cookie的UUkey参数'),  # 实际发现是小写
+                         Argument(key='eai-sess', alias_list=['-e'],
+                                  required=True, get_next=True,
+                                  help_text='cookie的eai-sess参数')
+                         ]
+        self.detail_description = '使用SubcovidSession获取cookies，配合订阅功能使用'
+
+    def internal_handle(self, request):
+        self.deactivate()
+        cookie = {'UUkey': self.arg_dict['uukey'].value,  # UUKey或UUkey应该都可以
+                  'eai-sess': self.arg_dict['eai-sess'].value}
+
+        s = requests.Session()
+        try:
+            yesterday = get_daily(s=s, cookie=cookie)
+        except ValueError:
+            return ResponseMsg(f'【{self.session_type}】获取昨日失败。')
+
+        if yesterday['szdd'] != "国内":
+            return ResponseMsg(f'【{self.session_type}】获取昨日信息中：所在地点不是国内，请手动填报。')
+
+        # 体温
+        if int(yesterday['tw']) > 4:
+            return ResponseMsg(f'【{self.session_type}】获取昨日信息中：体温大于 37.3 度，请手动填报。')
+
+        if yesterday['jrsflj'] == '是':
+            return ResponseMsg(f'【{self.session_type}】获取昨日信息中：近日有离京经历，请手动填报。')
+
+        try:
+            submit(s=s, old=yesterday, cookie=cookie)
+        except ValueError as e:
+            return ResponseMsg(f'【{self.session_type}】{str(e)}')
+        else:
+            return ResponseMsg(f'【{self.session_type}】{yesterday["realname"]}填报成功。')
+
+
+# Auto SubCovid
 class SubcovidSession(Session):
     def __init__(self, user_id):
         Session.__init__(self, user_id=user_id)
@@ -21,6 +69,7 @@ class SubcovidSession(Session):
         self.username = None
         self.password = None
         self.to_save = False
+        self.cookie = None
 
     def handle(self, request):
         if self.is_first_time:
@@ -36,8 +85,11 @@ class SubcovidSession(Session):
                         f"建议部署前修改SEP密码，当然，更安全的方式是自己部署。\n\n"
                         f"请仔细阅读上述条款，若无异议，请回复“同意”")
             notes_v2 = (f"【{self.session_type}】\n"
-                        f"本插件基于github上的IanSmith123/ucas-covid19项目。"
-                        f"服务器凌晨5点左右自动续报，若信息变动（如离校/返校），请在凌晨12点后手动填报一次。\n\n"
+                        f"基于github项目IanSmith123/ucas-covid19的自动填报插件。\n\n"
+                        f"使用方法（登录成功后选择）：\n"
+                        f"1）订阅：获取cookie生成手动填报指令，可改时间、随时取消，每日汇报填报情况；\n"
+                        f"2）录入：登记信息并由服务器凌晨4时左右自动填报，需联系管理取消，不汇报情况；\n"
+                        f"3）填报一次或仅返回获取的cookie。\n\n"
                         f"注意！！！！\n"
                         f"本程序仅用于解决忘记打卡这一问题，本人不对因为滥用此程序造成的后果负责，"
                         f"请在合理且合法的范围内使用本程序。\n\n"
@@ -59,24 +111,37 @@ class SubcovidSession(Session):
             self.username = request.msg
             return ResponseMsg('【%s】请输入SEP密码' % self.session_type)
         elif self.password is None:
-            self.deactivate()
             self.password = request.msg
+            # 尝试登录
             s = requests.Session()
             try:
-                cookie = login(s, self.username, self.password)
+                self.cookie = login(s, self.username, self.password)
+                return ResponseMsg(f'【{self.session_type}】获取cookie成功，'
+                                   f'回复“订阅”以自动订阅（建议使用，可随时取消订阅），'
+                                   f'或回复“录入”将信息记入表格凌晨自动填报，'
+                                   f'或回复“填报”进行一次手动填报，'
+                                   f'回复其他则不进行仍和操作。')
             except ValueError as e:
                 # 登录失败
+                self.deactivate()
                 return ResponseMsg('【%s】%s' % (self.session_type, e.__str__()))
-            save_cookie(cookie, user_id=self.user_id)
-            responses = [ResponseMsg('【%s】录入成功：%s\n请不要重复填报' % (self.session_type, str(cookie)))]
-            try:
-                submit(s, get_daily(s, cookie), cookie)
-            except ValueError as e:
-                submit_result = e.__str__()
+        else:
+            self.deactivate()
+            submit_command = f'手动填报'
+            for k, v in self.cookie.items():
+                submit_command += f' --{k.lower()} {v}'  # 转为小写防止出错
+            if request.msg == '订阅':
+                return [ResponseMsg(f'【{self.session_type}】订阅中...\n"{submit_command}"'),
+                        request.new(msg=f'订阅 -msg "{submit_command}"')]
+            elif request.msg == '录入':
+                save_cookie(self.cookie, user_id=self.user_id)
+                return ResponseMsg(f'【{self.session_type}】录入成功：{self.cookie}\n'
+                                   f'请不要重复填报')
+            elif request.msg == '填报':
+                return [ResponseMsg(f'【{self.session_type}】填报中...'),
+                        request.new(msg=submit_command)]
             else:
-                submit_result = '填报成功'
-            responses.append(ResponseMsg('【%s】自动进行一次填报并%s' % (self.session_type, submit_result)))
-            return responses
+                return ResponseMsg(f'【{self.session_type}】不进行任何操作，您的cookie是：\n{self.cookie}')
 
 
 def save_account(user, passwd):

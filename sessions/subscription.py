@@ -40,7 +40,7 @@ class AddQQSubscriptionSession(ArgSession):
         self.arg_list = [Argument(key='hour', alias_list=['-hr'],
                                   required=True, get_next=True,
                                   help_text='发送消息的时间（小时，0-23之间）',
-                                  ask_text='订阅时间是（小时，可带小数）？'),
+                                  ask_text='定时任务的时间是（小时，可带小数，24时制）？'),
                          Argument(key='minute', alias_list=['-min'],
                                   required=False, get_next=True,
                                   default_value=0,
@@ -51,7 +51,9 @@ class AddQQSubscriptionSession(ArgSession):
                                   help_text='重复发送间隔（整数，默认为0，不重复）'),
                          Argument(key='user_id', alias_list=['-uid'],
                                   required=False, get_next=True,
-                                  help_text='接收订阅的用户ID（QQ号）'),
+                                  default_value=user_id,
+                                  help_text='接收订阅的用户ID（QQ号）',
+                                  ask_text='请输入接收订阅用户的ID（QQ号）'),
                          Argument(key='message', alias_list=['-msg'],
                                   required=True, get_next=True,
                                   help_text='订阅内容',
@@ -65,6 +67,10 @@ class AddQQSubscriptionSession(ArgSession):
                                   '2. 订阅 -hr 8 -msg "查教室 -d 今天 -b 教一楼 -c 雁栖湖 -y"\n' \
                                   '3. 订阅 -hr 8 -dhr 6 -msg "天气 北京市 -wmap"'
 
+    def prior_handle_test(self, request):
+        if request.platform != 'CQ':
+            self.arg_dict['user_id'].required = True  # 其他平台变更订阅属性
+
     def internal_handle(self, request):
         self.deactivate()
 
@@ -73,10 +79,7 @@ class AddQQSubscriptionSession(ArgSession):
         minute = self.arg_dict['minute'].value
         dhour = self.arg_dict['delta-hour'].value
         msg = self.arg_dict['message'].value
-        if self.arg_dict['user_id'].called:
-            user_id = str(self.arg_dict['user_id'].value)
-        else:
-            user_id = str(request.user_id)
+        user_id = str(self.arg_dict['user_id'].value)  # 已经设置default value
 
         # 整理、检测合法性
         try:
@@ -108,7 +111,48 @@ class AddQQSubscriptionSession(ArgSession):
         # 保存数据
         pd.DataFrame(dfl).to_excel(SUBS_LIST, index=False)
 
-        return ResponseMsg(f'【{self.session_type}】订阅成功：\n{hour:02d}:{minute:02d} - {user_id}\n{msg}')
+        return ResponseMsg(f'【{self.session_type}】订阅成功：\n{hour:02d}:{minute:02d} - {user_id}\n{msg}\n'
+                           f'（添加好友后可收取通知）')
+
+
+class ViewQQSubscriptionSession(ArgSession):
+    def __init__(self, user_id):
+        ArgSession.__init__(self, user_id=user_id)
+        self.session_type = '查看QQ订阅条目'
+        self._max_delta = 60
+        self.strict_commands = ['查看订阅', '检查订阅', '订阅列表', 'subscriptions']
+        self.arg_list = [Argument(key='user_id', alias_list=['-uid'],
+                                  required=False, get_next=True,
+                                  default_value=user_id,
+                                  help_text='对应的用户ID（QQ号）')]
+        self.default_arg = None  # 没有缺省argument
+        self.detail_description = '检查订阅条目，默认使用发送人的id'
+        self._indexes = []
+        self._records = []
+
+    def prior_handle_test(self, request):
+        if request.platform != 'CQ':
+            self.arg_dict['user_id'].required = True  # 其他平台变更订阅属性
+
+    def internal_handle(self, request):
+        self.deactivate()
+        if not os.path.exists(SUBS_LIST):
+            return ResponseMsg(f'【{self.session_type}】没有订阅记录')
+        else:
+            dfl = pd.read_excel(SUBS_LIST).to_dict('records')
+            msg = ''
+            n = 0
+            uid = self.arg_dict['user_id'].value  # 已经设置default
+            for i, d in enumerate(dfl):
+                if str(d['user_id']) == uid:
+                    n += 1
+                    self._indexes.append(i)
+                    self._records.append(d)
+                    msg += f'{n}. ({d["hour"]:02d}:{d["minute"]:02d}) {d["message"]}\n'
+            if len(self._indexes) == 0:
+                return ResponseMsg(f'【{self.session_type}】未找到有关条目')
+            else:
+                return ResponseMsg(f'【{self.session_type}】找到以下条目：\n{msg}')
 
 
 class DelQQSubscriptionSession(ArgSession):
@@ -119,12 +163,17 @@ class DelQQSubscriptionSession(ArgSession):
         self.strict_commands = ['删除订阅', '取消订阅', 'unsubscribe']
         self.arg_list = [Argument(key='user_id', alias_list=['-uid'],
                                   required=False, get_next=True,
+                                  default_value=user_id,
                                   help_text='对应的用户ID（QQ号）')]
         self.default_arg = None  # 没有缺省argument
         self.detail_description = '寻找并删除订阅条目，默认使用发送人的id'
         self.this_first_time = True
         self._indexes = []
         self._records = []
+
+    def prior_handle_test(self, request):
+        if request.platform != 'CQ':
+            self.arg_dict['user_id'].required = True  # 其他平台变更订阅属性
 
     def internal_handle(self, request):
         if self.this_first_time:
@@ -136,10 +185,7 @@ class DelQQSubscriptionSession(ArgSession):
                 dfl = pd.read_excel(SUBS_LIST).to_dict('records')
                 msg = ''
                 n = 0
-                if self.arg_dict['user_id'].called:
-                    uid = self.arg_dict['user_id'].value
-                else:
-                    uid = str(request.user_id)
+                uid = self.arg_dict['user_id'].value  # 已经设置default
                 for i, d in enumerate(dfl):
                     if str(d['user_id']) == uid:
                         n += 1

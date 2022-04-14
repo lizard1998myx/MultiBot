@@ -30,6 +30,7 @@ class Ipv6AddrSession(ArgSession):
                 responses.append(ResponseMsg(f.read()))
         return responses
 
+
 # 获取ipv6地址
 # 引用自：http://blog.sina.com.cn/s/blog_3fe961ae0100zjo5.html
 def get_local_ipv6_address():
