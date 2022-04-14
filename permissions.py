@@ -4,6 +4,9 @@ import os
 
 # columns: type, platform, user_id
 PERM_FILE = os.path.join(PATHS['data'], 'permissions.xlsx')
+PERMS = [{'debug': 'Console',
+          'debug': 'WebApp',
+          'super': 'Console'}]
 # columns: type, key
 PERM_KEY_FILE = os.path.join(PATHS['data'], 'permission_keys.xlsx')
 PERM_KEYS = {'super': 'default_key',
@@ -22,6 +25,13 @@ except FileNotFoundError:
         records.append({'type': k, 'key': v})
     pd.DataFrame(records).to_excel(PERM_KEY_FILE, index=False)
     print(f'【MultiBot】please update your permission keys in {PERM_KEY_FILE}')
+
+# 更新权限文件
+if not os.path.exists(PERM_FILE):
+    records = []
+    for k, v in PERM_KEYS.items():
+        records.append({'type': k, 'platform': v, 'user_id': 'all'})
+    pd.DataFrame(records).to_excel(PERM_FILE, index=False)
 
 
 def get_permissions():

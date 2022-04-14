@@ -8,7 +8,7 @@ from .sessions.qrcode import DeCodeSession, EnCodeSession
 from .sessions.cq_command import CQCommandSession, CQRebootSession
 from .sessions.cq_groups import CQGroupSuicideSession, CQGroupRandomSession
 from .sessions.weather import WeatherSession
-from .sessions.subcovid import SubcovidSession
+from .sessions.subcovid import SubcovidSession, SubcovidManualSession
 from .sessions.schedule import QQScheduleSession, WCScheduleSession
 from .sessions.classroom_schedule import ClassroomScheduleSession, ClassroomScheduleUpdateSession
 from .sessions.answer_box import AutoAnswerSession, AddAnswerSession
@@ -46,7 +46,8 @@ NEW_SESSIONS = [IntroSession, DescriptionSession, VersionSession, HelpSession, E
                 WeatherSession, TranslationSession,
                 NbnhhshSession, BookOfAnswersSession, WebImgSession,
                 FocusCubeSession, AsoulCnkiSession, UpSideDownTextSession,
-                SubcovidSession, SubucassikSession, SepLoginSession, SubNaocSession, SubNaocExpSession,
+                SubcovidSession, SubcovidManualSession, SubucassikSession, SepLoginSession,
+                SubNaocSession, SubNaocExpSession,
                 EmailCasTrashSession,
                 UserNoteSession,
                 DeCodeSession, EnCodeSession, WolSession,
@@ -54,7 +55,7 @@ NEW_SESSIONS = [IntroSession, DescriptionSession, VersionSession, HelpSession, E
                 CovidRiskSession, CovidRiskUpdateSession, CovidDataSession, CovidDataUpdateSession,
                 ArxivSession, AstroPlotSession, CosmoPlotSession, AutoBaiduSession, MusicSession,
                 AutoAnswerSession, AddAnswerSession, AutoAliasSession, AddAliasSession,
-                AddQQSubscriptionSession, DelQQSubscriptionSession,
+                AddQQSubscriptionSession, DelQQSubscriptionSession, ViewQQSubscriptionSession,
                 AddPermissionSession, DelPermissionSession, Ipv6AddrSession, SystemCmdSession,
                 CQCommandSession, CQRebootSession, CQGroupSuicideSession, CQGroupRandomSession]
 
@@ -69,3 +70,4 @@ for session_class in NEW_SESSIONS + NEW_SESSIONS_CRON:
 
 with open(os.path.join(PATHS['data'], 'help_description.txt'), 'w') as f:
     f.write(help_text[:-2])
+
