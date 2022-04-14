@@ -81,17 +81,18 @@ class AutoAnswerSession(Session):
                 continue
             # add this item to the response list
             text = item['answer_text']
-            img = os.path.abspath(os.path.join(BOX_DIR, item['answer_img']))  # from relative path
+            img = item['answer_img']
             if text:
                 if command_is_to_choose:
                     responses_to_choose.append(ResponseMsg(text))
                 else:
                     responses.append(ResponseMsg(text))
             if img:
+                img_file = os.path.abspath(os.path.join(BOX_DIR, item['answer_img']))  # from relative path
                 if command_is_to_choose:
-                    responses_to_choose.append(ResponseImg(img))
+                    responses_to_choose.append(ResponseImg(img_file))
                 else:
-                    responses.append(ResponseImg(img))
+                    responses.append(ResponseImg(img_file))
         if responses_to_choose:
             responses.append(random.choice(responses_to_choose))
         return responses
@@ -125,9 +126,13 @@ class AddAnswerSession(ArgSession):
             writer = csv.DictWriter(f, fieldnames=['question', 'answer_text', 'answer_img'])
             # text = self.answer_text.replace('n', ' n').replace('\n', r'\n').replace('\r', '')
             text = self.answer_text
+            if self.answer_img:
+                img_file = os.path.relpath(self.answer_img, BOX_DIR)
+            else:
+                img_file = ''
             writer.writerow({'question': self.question,
                              'answer_text': text,
-                             'answer_img': os.path.relpath(self.answer_img, BOX_DIR)})
+                             'answer_img': img_file})
 
     def info(self):
         text = '问题：{}'.format(self.question)

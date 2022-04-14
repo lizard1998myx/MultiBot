@@ -4,9 +4,6 @@ from ..api_tokens import OCR_APP_ID, OCR_API_KEY, OCR_SECRET_KEY
 from aip import AipOcr
 
 
-client = AipOcr(OCR_APP_ID, OCR_API_KEY, OCR_SECRET_KEY)
-
-
 class OcrSession(ArgSession):
     def __init__(self, user_id):
         ArgSession.__init__(self, user_id=user_id)
@@ -50,6 +47,7 @@ def bin_img_read(filename):
 
 
 def whole_string(filename, accurate=False):
+    client = AipOcr(OCR_APP_ID, OCR_API_KEY, OCR_SECRET_KEY)
     if accurate:
         ocr_func = client.basicAccurate
     else:

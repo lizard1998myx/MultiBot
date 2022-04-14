@@ -42,8 +42,10 @@ class ArgSession(Session):
         self.arg_dict = {}
         self.default_arg = None
         self.help_args = ['help', '帮助', '-h', '--h', '-help', '--help']
+        self.mute_args = ['-mute', '--mute']
         self.detail_description = ''
         self._interrupted = False
+        self._mute_response = False
         self.strip_command = False
 
     def probability_to_call(self, request):
@@ -73,6 +75,10 @@ class ArgSession(Session):
                 help_str += f'\n[详细介绍]\n{self.detail_description}'
             return help_str
 
+    # 在handle之前进行简单检查
+    def prior_handle_test(self, request):
+        return
+
     # 测试是否插入任务，每次获取参数后或第一次获取了全部参数后都进行判断，默认不管
     def test_interruption(self):
         return False
@@ -98,6 +104,8 @@ class ArgSession(Session):
             else:
                 # 规整req_args
                 req_args = self._arg_splitter(request.msg)[1:]
+            # 完成初始化后进行检查
+            self.prior_handle_test(request=request)
             print('== ArgSession ==')
             print(request.msg)
             print(req_args)
@@ -112,6 +120,10 @@ class ArgSession(Session):
                         # 如果需要帮助，直接返回帮助信息
                         self.deactivate()
                         return ResponseMsg(self.help(detail=True))
+                    elif req_args[i] in self.mute_args:
+                        self._mute_response = True
+                        i += 1
+                        continue  # pass this while loop
                     for arg in self.arg_list:
                         # 循环arguments
                         if req_args[i] == f'--{arg.key}' or req_args[i] in arg.alias_list:
@@ -178,7 +190,12 @@ class ArgSession(Session):
         # 当所有都填完才有可能到达此处
         for arg in self.arg_list:
             assert not arg.required or arg.called
-        return self.internal_handle(request=request)
+        if self._mute_response:
+            # mute不会影响前面获取argument的部分，只是最后不返回response
+            self.internal_handle(request=request)  # handle but return nothing
+            return []
+        else:  # not muted
+            return self.internal_handle(request=request)
 
     def internal_handle(self, request):
         for arg in self.arg_list:
