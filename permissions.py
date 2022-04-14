@@ -28,10 +28,7 @@ except FileNotFoundError:
 
 # 更新权限文件
 if not os.path.exists(PERM_FILE):
-    records = []
-    for k, v in PERMS.items():
-        records.append({'type': k, 'platform': v, 'user_id': 'all'})
-    pd.DataFrame(records).to_excel(PERM_FILE, index=False)
+    pd.DataFrame(PERMS).to_excel(PERM_FILE, index=False)
 
 
 def get_permissions():
