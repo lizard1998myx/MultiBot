@@ -28,7 +28,7 @@ $ git clone https://github.com/lizard1998myx/MultiBot
 $ pip install -r ./MultiBot/requirements
 ```
 
-## 使用
+### 使用
 
 ```python
 import MultiBot
