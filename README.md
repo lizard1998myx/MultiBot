@@ -38,7 +38,9 @@ MultiBot.integrate_web_main()  # 第二种：运行Web版本
 
 ### 问题解决
 
-import时遇到“Unable to find zbar shared library”：
+1. api问题请查看api_tokens.py中的说明，并将获取的token存到data目录下的表格中；
+
+2. import时遇到“Unable to find zbar shared library”：
 
 ```sh
 $ apt install libzbar-dev
