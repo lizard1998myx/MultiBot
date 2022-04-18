@@ -80,7 +80,6 @@ class DelPermissionSession(ArgSession):
         self.detail_description = '寻找并删除权限条目，只有属于最高权限的用户可以执行'
         self.this_first_time = True
         self.table_filename = PERM_FILE
-        self._indexes = []
         self._records = []
 
     def internal_handle(self, request):
@@ -98,20 +97,14 @@ class DelPermissionSession(ArgSession):
                     self.deactivate()
                     return ResponseMsg(f'【{self.session_type}】数值输入有误')
 
-                dfl = pd.read_excel(self.table_filename).to_dict('records')
-                if len(dfl) > n_items:
-                    dfl = dfl[-n_items:]
-                    i0 = len(dfl) - n_items
-                else:
-                    i0 = 0
+                dfl = pd.read_excel(self.table_filename).to_dict('records')[-n_items:]
                 msg = ''
                 n = 0
                 for i, d in enumerate(dfl):
                     n += 1
-                    self._indexes.append(i0+i)
                     self._records.append(d)
                     msg += f'{n}. [{d["type"]}] {d["platform"]} - {d["user_id"]}\n'
-                if len(self._indexes) == 0:
+                if len(self._records) == 0:
                     self.deactivate()
                     return ResponseMsg(f'【{self.session_type}】未找到有关条目')
                 else:
@@ -123,13 +116,12 @@ class DelPermissionSession(ArgSession):
             except ValueError:
                 self.deactivate()
                 return ResponseMsg(f'【{self.session_type}】未找到序号，退出')
-            if i_del < 0 or i_del >= len(self._indexes):
+            if i_del < 0 or i_del >= len(self._records):
                 self.deactivate()
                 return ResponseMsg(f'【{self.session_type}】序号超出范围，退出')
             # 读取数据
             dfl = pd.read_excel(self.table_filename).to_dict('records')
-            i_start = min(len(dfl)-1, self._indexes[i_del])  # 从右边向左找
-            for i in range(i_start, -1, -1):  # 回溯
+            for i in range(len(dfl)-1, -1, -1):  # 回溯，从右边向左找
                 d = dfl[i]
                 if d == self._records[i_del]:  # record matched
                     dfl = dfl[:i] + dfl[i+1:]
