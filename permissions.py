@@ -17,7 +17,7 @@ PERM_KEYS = {'super': 'default_key',
              }
 
 try:  # update with file
-    for record in pd.read_excel(PERM_KEY_FILE).to_dict('records'):
+    for record in pd.read_excel(PERM_KEY_FILE, keep_default_na=False).to_dict('records'):
         PERM_KEYS[record['type']] = record['key']
 except FileNotFoundError:
     records = []
