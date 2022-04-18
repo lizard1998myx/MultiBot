@@ -7,6 +7,10 @@ import qrcode, datetime, os
 
 TEMP_DIR = PATHS['temp']
 
+# Solutions to "Unable to find zbar shared library"
+# apt-get install libzbar-dev  # ubuntu
+# yum install zbar-devel  # centOS
+
 
 class DeCodeSession(ArgSession):
     def __init__(self, user_id):

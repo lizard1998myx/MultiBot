@@ -115,46 +115,6 @@ class AddQQSubscriptionSession(ArgSession):
                            f'（添加好友后可收取通知）')
 
 
-class ViewQQSubscriptionSession(ArgSession):
-    def __init__(self, user_id):
-        ArgSession.__init__(self, user_id=user_id)
-        self.session_type = '查看QQ订阅条目'
-        self._max_delta = 60
-        self.strict_commands = ['查看订阅', '检查订阅', '订阅列表', 'subscriptions']
-        self.arg_list = [Argument(key='user_id', alias_list=['-uid'],
-                                  required=False, get_next=True,
-                                  default_value=user_id,
-                                  help_text='对应的用户ID（QQ号）')]
-        self.default_arg = None  # 没有缺省argument
-        self.detail_description = '检查订阅条目，默认使用发送人的id'
-        self._indexes = []
-        self._records = []
-
-    def prior_handle_test(self, request):
-        if request.platform != 'CQ':
-            self.arg_dict['user_id'].required = True  # 其他平台变更订阅属性
-
-    def internal_handle(self, request):
-        self.deactivate()
-        if not os.path.exists(SUBS_LIST):
-            return ResponseMsg(f'【{self.session_type}】没有订阅记录')
-        else:
-            dfl = pd.read_excel(SUBS_LIST).to_dict('records')
-            msg = ''
-            n = 0
-            uid = self.arg_dict['user_id'].value  # 已经设置default
-            for i, d in enumerate(dfl):
-                if str(d['user_id']) == uid:
-                    n += 1
-                    self._indexes.append(i)
-                    self._records.append(d)
-                    msg += f'{n}. ({d["hour"]:02d}:{d["minute"]:02d}) {d["message"]}\n'
-            if len(self._indexes) == 0:
-                return ResponseMsg(f'【{self.session_type}】未找到有关条目')
-            else:
-                return ResponseMsg(f'【{self.session_type}】找到以下条目：\n{msg}')
-
-
 class DelQQSubscriptionSession(ArgSession):
     def __init__(self, user_id):
         ArgSession.__init__(self, user_id=user_id)
@@ -164,7 +124,10 @@ class DelQQSubscriptionSession(ArgSession):
         self.arg_list = [Argument(key='user_id', alias_list=['-uid'],
                                   required=False, get_next=True,
                                   default_value=user_id,
-                                  help_text='对应的用户ID（QQ号）')]
+                                  help_text='对应的用户ID（QQ号）'),
+                         Argument(key='list', alias_list=['-l'],
+                                  required=False, get_next=False,
+                                  help_text='仅查看订阅列表，不删除')]
         self.default_arg = None  # 没有缺省argument
         self.detail_description = '寻找并删除订阅条目，默认使用发送人的id'
         self.this_first_time = True
@@ -195,6 +158,9 @@ class DelQQSubscriptionSession(ArgSession):
                 if len(self._indexes) == 0:
                     self.deactivate()
                     return ResponseMsg(f'【{self.session_type}】未找到有关条目')
+                elif self.arg_dict['list'].called:
+                    self.deactivate()
+                    return ResponseMsg(f'【{self.session_type}】找到以下条目：\n{msg}')
                 else:
                     return ResponseMsg(f'【{self.session_type}】找到以下条目：\n{msg}'
                                        f'请回复需要删除条目的序号（正整数），回复其他内容以取消')
