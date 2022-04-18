@@ -76,7 +76,7 @@ class AccountUpdateSession(ArgSession):
             if arg.key != 'book':
                 record_item[arg.key] = arg.value
 
-        book.append(record_item)
+        book.append(**record_item)
 
         return ResponseMsg(f'【{self.session_type}】成功')
 
