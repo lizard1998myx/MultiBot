@@ -98,12 +98,17 @@ class DelPermissionSession(ArgSession):
                     self.deactivate()
                     return ResponseMsg(f'【{self.session_type}】数值输入有误')
 
-                dfl = pd.read_excel(self.table_filename).to_dict('records')[-n_items:]
+                dfl = pd.read_excel(self.table_filename).to_dict('records')
+                if len(dfl) > n_items:
+                    dfl = dfl[-n_items:]
+                    i0 = len(dfl) - n_items
+                else:
+                    i0 = 0
                 msg = ''
                 n = 0
                 for i, d in enumerate(dfl):
                     n += 1
-                    self._indexes.append(i)
+                    self._indexes.append(i0+i)
                     self._records.append(d)
                     msg += f'{n}. [{d["type"]}] {d["platform"]} - {d["user_id"]}\n'
                 if len(self._indexes) == 0:
