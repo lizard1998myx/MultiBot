@@ -86,6 +86,7 @@ VERSION_LIST = [{'version': '1.0.0', 'date': '2021-01-22',
                 {'version': '3.3.8', 'date': '2022-04-10', 'info': '更新国科大疫情填报插件，用订阅制代替'},
                 {'version': '3.3.9', 'date': '2022-04-11', 'info': '优化和修复'},
                 {'version': '3.4.0', 'date': '2022-04-14', 'info': '优化订阅插件和跨平台部署'},
+                {'version': '3.4.1', 'date': '2022-04-18', 'info': '修复国台填报插件'},
                 ]
 
 INTRODUCTION = {'Default': f"你好！我是MultiBot（V{VERSION_LIST[-1]['version']}）。"
