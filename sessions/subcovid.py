@@ -118,7 +118,7 @@ class SubcovidSession(Session):
                 self.cookie = login(s, self.username, self.password)
                 return ResponseMsg(f'【{self.session_type}】获取cookie成功，'
                                    f'回复“订阅”以自动订阅（建议使用，可随时取消订阅），'
-                                   f'或回复“录入”将信息记入表格凌晨自动填报，'
+                                   f'或回复“录入”将信息记入表格凌晨自动填报（适用非QQ平台），'
                                    f'或回复“填报”进行一次手动填报，'
                                    f'回复其他则不进行仍和操作。')
             except ValueError as e:

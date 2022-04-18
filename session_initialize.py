@@ -23,10 +23,9 @@ from .sessions.seplogin import SepLoginSession
 from .sessions.music import MusicSession
 from .sessions.covid_regions import CovidRiskSession, CovidRiskUpdateSession
 from .sessions.subnaoc import SubNaocSession
-from .sessions.subnaoc_exp import SubNaocExpSession
 from .sessions.user_note_search import UserNoteSession
 from .sessions.wake_on_lan import WolSession
-from .sessions.subscription import AddQQSubscriptionSession, DelQQSubscriptionSession, ViewQQSubscriptionSession
+from .sessions.subscription import AddQQSubscriptionSession, DelQQSubscriptionSession
 from .sessions.popular import NbnhhshSession, BookOfAnswersSession, WebImgSession, \
                               FocusCubeSession, AsoulCnkiSession, UpSideDownTextSession
 from .sessions.perms_add import AddPermissionSession, DelPermissionSession
@@ -47,7 +46,7 @@ NEW_SESSIONS = [IntroSession, DescriptionSession, VersionSession, HelpSession, E
                 NbnhhshSession, BookOfAnswersSession, WebImgSession,
                 FocusCubeSession, AsoulCnkiSession, UpSideDownTextSession,
                 SubcovidSession, SubcovidManualSession, SubucassikSession, SepLoginSession,
-                SubNaocSession, SubNaocExpSession,
+                SubNaocSession,
                 EmailCasTrashSession,
                 UserNoteSession,
                 DeCodeSession, EnCodeSession, WolSession,
@@ -55,7 +54,7 @@ NEW_SESSIONS = [IntroSession, DescriptionSession, VersionSession, HelpSession, E
                 CovidRiskSession, CovidRiskUpdateSession, CovidDataSession, CovidDataUpdateSession,
                 ArxivSession, AstroPlotSession, CosmoPlotSession, AutoBaiduSession, MusicSession,
                 AutoAnswerSession, AddAnswerSession, AutoAliasSession, AddAliasSession,
-                AddQQSubscriptionSession, DelQQSubscriptionSession, ViewQQSubscriptionSession,
+                AddQQSubscriptionSession, DelQQSubscriptionSession,
                 AddPermissionSession, DelPermissionSession, Ipv6AddrSession, SystemCmdSession,
                 CQCommandSession, CQRebootSession, CQGroupSuicideSession, CQGroupRandomSession]
 
