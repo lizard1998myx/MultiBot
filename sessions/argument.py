@@ -48,6 +48,9 @@ class ArgSession(Session):
         self._mute_response = False
         self.strip_command = False
 
+    def add_arg(self, **kwargs):
+        self.arg_list.append(Argument(**kwargs))
+
     def probability_to_call(self, request):
         try:
             msg = request.msg.split()[0]
