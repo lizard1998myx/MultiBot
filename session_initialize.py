@@ -65,8 +65,8 @@ NEW_SESSIONS_CRON = [QQScheduleSession, WCScheduleSession]
 # 初始化帮助文档并保存
 help_text = ''
 for session_class in NEW_SESSIONS + NEW_SESSIONS_CRON:
-    help_text += session_class('').help()
-    help_text += '\n\n'
+    help_text += session_class('').brief_help()
+    help_text += '\n'
 
 with open(os.path.join(PATHS['data'], 'help_description.txt'), 'w') as f:
     f.write(help_text[:-2])
