@@ -1,7 +1,10 @@
 from .general import Session
 from ..responses import ResponseMsg
+import logging
 
 # 2021-12-12: 加入strip command项，将is_first_time改名
+# 2022-04-18: 加入add_arg方法，不需要再import Argument
+# 2022-04-19: 增加list类default_arg的处理
 
 
 class Argument:
@@ -41,7 +44,7 @@ class ArgSession(Session):
         self.arg_list = []
         self.arg_dict = {}
         self.default_arg = None
-        self.help_args = ['help', '帮助', '-h', '--h', '-help', '--help']
+        self.help_args = ['help', '帮助', '-h', '--h', '-help', '--help', '-?', '--?']
         self.mute_args = ['-mute', '--mute']
         self.detail_description = ''
         self._interrupted = False
@@ -66,14 +69,27 @@ class ArgSession(Session):
         if not detail:
             return help_str
         else:
-            help_str += '\n[指令]'
-            for arg in self.arg_list:
-                help_str += f'\n{arg.key}'
-                if arg.required:
-                    help_str += '(required)'
-                help_str += f": {', '.join(arg.alias_list)}"
-                if arg.help_text:
-                    help_str += f"\n{arg.help_text}"
+            # 介绍所有参数
+            if len(self.arg_list) > 0:
+                help_str += '\n[指令]'
+                for arg in self.arg_list:
+                    if arg.required:
+                        help_str += f'\n<{arg.key}>'
+                    else:
+                        help_str += f'\n{arg.key}'
+                    help_str += f": {', '.join(arg.alias_list)}"
+                    if arg.help_text:
+                        help_str += f"\n{arg.help_text}"
+            # 介绍缺省参数信息
+            if self.default_arg is not None:
+                if isinstance(self.default_arg, Argument):
+                    help_str += f'\n[缺省参数] {self.default_arg.key}'
+                elif isinstance(self.default_arg, list):
+                    help_str += f'\n[缺省参数] '
+                    for arg in self.default_arg:
+                        help_str += f'{arg.key}, '
+                    help_str = help_str[:-2]
+            # 详细说明
             if self.detail_description:
                 help_str += f'\n[详细介绍]\n{self.detail_description}'
             return help_str
@@ -88,6 +104,7 @@ class ArgSession(Session):
 
     # 符合插入任务条件时的反应，默认中止任务并返回提示
     # 结束interruption后不会自动获取下条消息作为参数
+    # 举例：判断某一输入的参数不合法以后停止处理并返回报错
     def interrupted_handle(self, request):
         self.deactivate()
         return ResponseMsg(f'【{self.session_type}】任务中止。')
@@ -128,8 +145,11 @@ class ArgSession(Session):
                         i += 1
                         continue  # pass this while loop
                     for arg in self.arg_list:
-                        # 循环arguments
+                        # 循环arguments，检查是否被输入
                         if req_args[i] == f'--{arg.key}' or req_args[i] in arg.alias_list:
+                            if arg.called:
+                                self.deactivate()
+                                return ResponseMsg(f'【{self.session_type}】参数[{arg.key}]重复，请检查')
                             use_default = False
                             arg.called = True
                             if arg.get_all:
@@ -144,16 +164,40 @@ class ArgSession(Session):
                             break
                     # 如果没有唤起任何一个argument，查看缺省值
                     # 要求argument支持get_next，且不能唤起两次
-                    if use_default and self.default_arg is not None:
-                        # 如果已经完成了缺省参数或缺省参数不需要value，报错
-                        if self.default_arg.called or not self.default_arg.get_next:
-                            self.deactivate()
-                            return ResponseMsg(f'【{self.session_type}】输入参数错误，请检查')
-                        # 否则把这个arg作为缺省参数的值
-                        self.default_arg.called = True
-                        self.default_arg.value = req_args[i]
-                        if self.default_arg.get_all:
-                            self.default_arg.raw_req = request
+                    if use_default:
+                        if self.default_arg is None:
+                            logging.warning('输入参数中未指定参数类型，而此session没有缺省参数')  # 不应该出现
+                        elif isinstance(self.default_arg, Argument):  # 单个argument，这部分之后可以整合掉
+                            # 如果已经完成了缺省参数或缺省参数不需要value，报错
+                            if self.default_arg.called:
+                                self.deactivate()
+                                return ResponseMsg(f'【{self.session_type}】参数[{self.default_arg.key}]重复，请检查')
+                            if not self.default_arg.get_next:
+                                self.deactivate()
+                                return ResponseMsg(f'【{self.session_type}】默认参数设置有bug，请联系管理')
+                            # 否则把这个arg作为缺省参数的值
+                            self.default_arg.called = True
+                            self.default_arg.value = req_args[i]
+                            if self.default_arg.get_all:
+                                self.default_arg.raw_req = request
+                        elif isinstance(self.default_arg, list):
+                            if len(self.default_arg) == 0:
+                                self.deactivate()
+                                return ResponseMsg(f'【{self.session_type}】输入了太多的默认参数')
+                            else:
+                                # 处理第一个argument
+                                arg = self.default_arg.pop(0)
+                                if arg.called:
+                                    self.deactivate()
+                                    return ResponseMsg(f'【{self.session_type}】参数[{arg.key}]重复，请检查')
+                                if not arg.get_next:
+                                    self.deactivate()
+                                    return ResponseMsg(f'【{self.session_type}】默认参数设置有bug，请联系管理')
+                                # 否则把这个arg作为缺省参数的值
+                                arg.called = True
+                                arg.value = req_args[i]
+                                if arg.get_all:
+                                    arg.raw_req = request
                     # 最后+1
                     i += 1
 

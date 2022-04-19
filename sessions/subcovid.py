@@ -63,7 +63,7 @@ class SubcovidSession(Session):
         self._max_delta = 3*60
         self.session_type = '自动填报插件'
         self.strict_commands = ['疫情填报', '填报', '国科大填报']
-        self.description = '登记自动疫情填报，用于定时任务，唤起本插件以查看更多'
+        self.description = '国科大疫情填报辅助，基于github.com/IanSmith123/ucas-covid19'
         self.is_first_time = True
         self.is_second_time = False
         self.username = None

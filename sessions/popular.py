@@ -17,7 +17,7 @@ class NbnhhshSession(ArgSession):
     def __init__(self, user_id):
         ArgSession.__init__(self, user_id=user_id)
         self.session_type = '能不能好好说话'
-        self.description = '拼音缩写翻译查询，来自https://lab.magiconch.com/nbnhhsh/，速度较慢'
+        self.description = '拼音缩写翻译查询，来自lab.magiconch.com/nbnhhsh，速度较慢'
         self._max_delta = 60
         self.extend_commands = ['好好说话', 'nbnhhsh', '缩写']
         self.arg_list = [Argument(key='text', alias_list=['-s'],
@@ -45,7 +45,7 @@ class BookOfAnswersSession(ArgSession):
     def __init__(self, user_id):
         ArgSession.__init__(self, user_id=user_id)
         self.session_type = '答案之书'
-        self.description = '随机回复答案，来自https://github.com/FYWinds/takker'
+        self.description = '随机回复答案，来自github.com/FYWinds/takker'
         self._max_delta = 60
         self.strip_command = True  # 将句子分离
         self.extend_commands = ['答案之书', '答案书']
@@ -67,7 +67,7 @@ class WebImgSession(ArgSession):
     def __init__(self, user_id):
         ArgSession.__init__(self, user_id=user_id)
         self.session_type = '网图'
-        self.description = '获取有关网络图片，来自https://github.com/MeetWq/mybot'
+        self.description = '获取有关网络图片，来自github.com/MeetWq/mybot'
         self._max_delta = 60
         self.strict_commands = ['网图', 'WebImg']
         self.arg_list = [Argument(key='keyword', alias_list=['-k'],
@@ -180,7 +180,7 @@ class AsoulCnkiSession(ArgSession):
     def __init__(self, user_id):
         ArgSession.__init__(self, user_id=user_id)
         self.session_type = '作文查重'
-        self.description = '枝网小作文查重功能，来自https://asoulcnki.asia/'
+        self.description = '枝网小作文查重功能，来自asoulcnki.asia'
         self._max_delta = 60
         self.extend_commands = ['查重', '小作文']
         self.arg_list = [Argument(key='text', alias_list=['-t', '-s'],
@@ -252,7 +252,7 @@ class SlscqSession(ArgSession):
     def __init__(self, user_id):
         ArgSession.__init__(self, user_id=user_id)
         self.session_type = '申论生成器'
-        self.description = '拼凑文章，来自https://github.com/Uahh/Slscq'
+        self.description = '拼凑文章，来自github.com/Uahh/Slscq'
         self._max_delta = 60
         self.extend_commands = ['申论', '申论生成', '文章生成']
         self.add_arg(key='topic', alias_list=['-t'],

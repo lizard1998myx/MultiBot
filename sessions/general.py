@@ -100,6 +100,25 @@ class Session:
     def help(self):
         return self._default_help()
 
+    # 简短描述
+    def brief_help(self):
+        help_text = '[%s' % self.session_type
+        if self.permissions:
+            help_text += '*'
+        help_text += ']: '
+        if self._list_commands:
+            if self.extend_commands or self.strict_commands:
+                for command in self.extend_commands:
+                    help_text += '{}+, '.format(command)
+                for command in self.strict_commands:
+                    help_text += '{}, '.format(command)
+                help_text = help_text[:-2]
+        if self.description:
+            help_text += '\n    {}'.format(self.description)
+        if self._max_delta != DEFAULT_WAIT:
+            help_text += ' (等待时间 %i 秒)' % self._max_delta
+        return help_text
+
     def _default_help(self):
         help_text = '[插件名] %s' % self.session_type
         if self.permissions:
@@ -212,7 +231,7 @@ class HelpSession(Session):
                     f'机器人消息处理由插件控制，以下为插件使用帮助，' \
                     f'包括：插件名称，唤起关键词（不区分大小写，带+表示不严格指令，即消息中带有该关键字即唤起），' \
                     f'等待时间（需要输入多条消息时，等待下一条消息的时长，默认为{DEFAULT_WAIT}秒）和其他说明。' \
-                    f'标明“受限”的插件仅限部分平台或部分用户使用，其他情况下会被忽略。' \
+                    f'标明“受限”/带星号的插件仅限部分平台或部分用户使用，其他情况下会被忽略。' \
                     f'不同插件有优先级，符合多条插件关键词的消息会有限唤起高优先级的插件。' \
                     f'部分插件可以通过“插件关键词 帮助”的形式查看更详细的使用说明。\n\n'
         with open(os.path.join(DATA_DIR, 'help_description.txt'), 'r') as f:
