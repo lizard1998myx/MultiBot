@@ -1,5 +1,5 @@
-from .sessions.general import IntroSession, DescriptionSession, VersionSession, HelpSession, ErrorSession, HistorySession
-from .sessions.general import RepeatSession, IdentitySession
+from .sessions.general import IntroSession, DescriptionSession, VersionSession, HelpSession, \
+                              ErrorSession, HistorySession, RepeatSession, IdentitySession
 from .sessions.counter import CounterSession
 from .sessions.turing import TuringSession
 from .sessions.student_info import InfoSession
@@ -27,7 +27,7 @@ from .sessions.user_note_search import UserNoteSession
 from .sessions.wake_on_lan import WolSession
 from .sessions.subscription import AddQQSubscriptionSession, DelQQSubscriptionSession
 from .sessions.popular import NbnhhshSession, BookOfAnswersSession, WebImgSession, \
-                              FocusCubeSession, AsoulCnkiSession, UpSideDownTextSession
+                              FocusCubeSession, AsoulCnkiSession, UpSideDownTextSession, SlscqSession
 from .sessions.perms_add import AddPermissionSession, DelPermissionSession
 from .sessions.astropy import AstroPlotSession
 from .sessions.cosmology import CosmoPlotSession
@@ -45,7 +45,7 @@ NEW_SESSIONS = [IntroSession, DescriptionSession, VersionSession, HelpSession, E
                 OcrSession, ActiveAudioSession, PassiveAudioSession,
                 WeatherSession, TranslationSession,
                 NbnhhshSession, BookOfAnswersSession, WebImgSession,
-                FocusCubeSession, AsoulCnkiSession, UpSideDownTextSession,
+                FocusCubeSession, AsoulCnkiSession, UpSideDownTextSession, SlscqSession,
                 SubcovidSession, SubcovidManualSession, SubucassikSession, SepLoginSession,
                 SubNaocSession,
                 EmailCasTrashSession,
