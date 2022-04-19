@@ -22,9 +22,17 @@ class Ipv6AddrSession(ArgSession):
 
     def internal_handle(self, request):
         self.deactivate()
-        responses = [ResponseMsg(f'【{self.session_type}】服务器的ipv6地址是：\n{get_local_ipv6_address()}')]
+        addr_list = get_local_ipv6_address()
+        responses = []
+        if len(addr_list) == 0:
+            responses.append(ResponseMsg(f'【{self.session_type}】未找到ipv6地址'))
+        response_msg = f'【{self.session_type}】服务器的ipv6地址是：'
+        for addr in addr_list:
+            response_msg += f'\n{addr}'
+        responses.append(ResponseMsg(response_msg))
         if self.arg_dict['link'].called:
-            responses.append(ResponseMsg(f'[{get_local_ipv6_address()}]:{FLASK_PORTS["Web6"]}'))
+            for addr in addr_list:
+                responses.append(ResponseMsg(f'[{addr}]:{FLASK_PORTS["Web6"]}\n'))
         if self.arg_dict['detail'].called:
             with os.popen('ipconfig') as f:
                 responses.append(ResponseMsg(f.read()))
@@ -33,6 +41,7 @@ class Ipv6AddrSession(ArgSession):
 
 # 获取ipv6地址
 # 引用自：http://blog.sina.com.cn/s/blog_3fe961ae0100zjo5.html
+# 有修改
 def get_local_ipv6_address():
     """
      This function will return your local machine's ipv6 address if it exits.
@@ -44,10 +53,16 @@ def get_local_ipv6_address():
     getIPV6_process = subprocess.Popen("ipconfig", stdout=subprocess.PIPE)
     output = (getIPV6_process.stdout.read())
     ipv6_pattern = '(([a-f0-9]{1,4}:){7}[a-f0-9]{1,4})'
-    m = re.search(ipv6_pattern, str(output))
+    ms = re.findall(ipv6_pattern, str(output))
+    addr_list = []
+    for m in ms:
+        addr_list.append(m[0])
 
-    if m is not None:
-        return m.group()
-    else:
-        return None
+    # m = re.search(ipv6_pattern, str(output))
+    # if m is not None:
+    #     return m.group()
+    # else:
+    #     return None
 
+    # 通常第一个是固定ip，第二个是临时ip
+    return addr_list
