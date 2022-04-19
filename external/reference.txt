@@ -1,0 +1,7 @@
+【申论文章生成器】
+slscq.py
+slscq_data.json
+via https://github.com/Uahh/Slscq
+
+【答案之书】
+via https://github.com/FYWinds/takker
