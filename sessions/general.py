@@ -167,6 +167,22 @@ class RepeatSession(Session):
         return responses
 
 
+class EchoSession(Session):
+    def __init__(self, user_id):
+        Session.__init__(self, user_id=user_id)
+        self.extend_commands = ['echo', '回声']
+        self.session_type = '回声'
+
+    def handle(self, request):
+        self.deactivate()
+        msg = request.msg
+        for command in self.extend_commands:
+            if msg[:len(command)] == command:
+                msg = msg[len(command):].strip()
+                break
+        return ResponseMsg(msg)
+
+
 class IdentitySession(Session):
     def __init__(self, user_id):
         Session.__init__(self, user_id=user_id)

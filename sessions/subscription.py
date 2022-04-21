@@ -18,6 +18,7 @@ def get_qq_subscriptions(request, now=None):
 
     df = pd.read_excel(SUBS_LIST)
     request_list = []
+    expire_list = []
     if now is None:
         now = datetime.datetime.now()
 
@@ -26,8 +27,63 @@ def get_qq_subscriptions(request, now=None):
             new_r = request.new(msg=i['message'])
             new_r.user_id = str(i['user_id'])
             request_list.append(new_r)
+            if i['temp']:  # 临时项目
+                expire_list.append(i)
+
+    # 去除过期项目（temp项）
+    if len(expire_list) > 0:
+        dfl = df.to_dict('records')
+        new_dfl = []
+        for i in dfl:
+            if i not in expire_list:
+                new_dfl.append(i)
+        pd.DataFrame(dfl).to_excel(SUBS_LIST)
 
     return request_list
+
+
+# 添加新的订阅，用于AddSubscription插件和其他
+# 如果用类封装会更好
+def add_qq_subscription(hour, msg, user_id, minute=0, dhour=0, temp_flag=0, no_repeat=False, get_brief=False):
+    # 整理、检测合法性
+    minute = float(minute) + float(hour) * 60  # 全部加到分钟上
+    minute = int(minute)  # 向下取整
+    hour = minute // 60
+    minute %= 60
+    hour %= 24
+    dhour = int(dhour)
+    user_id = str(user_id)
+
+    # 读取原数据
+    if os.path.exists(SUBS_LIST):
+        df = pd.read_excel(SUBS_LIST)
+        df['user_id'] = df['user_id'].astype(str)
+        dfl = df.to_dict('records')
+    else:
+        # 新建表格
+        dfl = []
+
+    def append_record(d, dfl=dfl, no_repeat=no_repeat):
+        if no_repeat:
+            if d not in dfl:
+                dfl.append(d)
+        else:
+            dfl.append(d)
+
+    if dhour > 0:  # 重复，往后
+        for h in range(hour, 24, dhour):
+            append_record({'hour': h, 'minute': minute, 'user_id': user_id, 'temp': temp_flag, 'message': msg})
+    elif dhour < 0:  # 重复，往回
+        for h in range(hour, -1, dhour):
+            append_record({'hour': h, 'minute': minute, 'user_id': user_id, 'temp': temp_flag, 'message': msg})
+    else:  # 不重复
+        append_record({'hour': hour, 'minute': minute, 'user_id': user_id, 'temp': temp_flag, 'message': msg})
+
+    # 保存数据
+    pd.DataFrame(dfl).to_excel(SUBS_LIST, index=False)
+
+    if get_brief:
+        return f'{hour:02d}:{minute:02d} - {user_id}\n{msg}'
 
 
 class AddQQSubscriptionSession(ArgSession):
@@ -37,28 +93,32 @@ class AddQQSubscriptionSession(ArgSession):
         self.description = '添加订阅条目，进行定点报时或天气预报等'
         self._max_delta = 60
         self.strict_commands = ['订阅', 'subscribe']
-        self.arg_list = [Argument(key='hour', alias_list=['-hr'],
-                                  required=True, get_next=True,
-                                  help_text='发送消息的时间（小时，0-23之间）',
-                                  ask_text='定时任务的时间是（小时，可带小数，24时制）？'),
-                         Argument(key='minute', alias_list=['-min'],
-                                  required=False, get_next=True,
-                                  default_value=0,
-                                  help_text='发送消息的时间（分钟，0-59之间）'),
-                         Argument(key='delta-hour', alias_list=['-dhr'],
-                                  required=False, get_next=True,
-                                  default_value=0,
-                                  help_text='重复发送间隔（整数，默认为0，不重复）'),
-                         Argument(key='user_id', alias_list=['-uid'],
-                                  required=False, get_next=True,
-                                  default_value=user_id,
-                                  help_text='接收订阅的用户ID（QQ号）',
-                                  ask_text='请输入接收订阅用户的ID（QQ号）'),
-                         Argument(key='message', alias_list=['-msg'],
-                                  required=True, get_next=True,
-                                  help_text='订阅内容',
-                                  ask_text='订阅内容（即定时发送的指令）是？')]
-        self.default_arg = self.arg_list[0]
+        self.add_arg(key='hour', alias_list=['-hr'],
+                     required=True, get_next=True,
+                     help_text='发送消息的时间（小时，0-23之间）',
+                     ask_text='定时任务的时间是（小时，可带小数，24时制）？')
+        self.add_arg(key='minute', alias_list=['-min'],
+                     required=False, get_next=True,
+                     default_value=0,
+                     help_text='发送消息的时间（分钟，0-59之间）')
+        self.add_arg(key='delta-hour', alias_list=['-dhr'],
+                     required=False, get_next=True,
+                     default_value=0,
+                     help_text='重复发送间隔（整数，默认为0，不重复）')
+        self.add_arg(key='user_id', alias_list=['-uid'],
+                     required=False, get_next=True,
+                     default_value=user_id,
+                     help_text='接收订阅的用户ID（QQ号）',
+                     ask_text='请输入接收订阅用户的ID（QQ号）')
+        self.add_arg(key='temp', alias_list=['-t'],
+                     required=False, get_next=False,
+                     help_text='一次性订阅条目标记')
+        self.add_arg(key='message', alias_list=['-msg'],
+                     required=True, get_next=True,
+                     help_text='订阅内容',
+                     ask_text='订阅内容（即定时发送的指令）是？')
+
+        self.default_arg = [self.arg_list[0], self.arg_list[-1]]
         self.detail_description = '例如，发送“订阅 -hr 23 -min 30 -msg 北京疫情”，' \
                                   '每天晚23时30分机器人会认为你给它发送了“北京疫情”指令，' \
                                   '他就会将疫情信息发送给你。\n' \
@@ -75,43 +135,26 @@ class AddQQSubscriptionSession(ArgSession):
         self.deactivate()
 
         # 读取记录
-        hour = self.arg_dict['hour'].value
-        minute = self.arg_dict['minute'].value
-        dhour = self.arg_dict['delta-hour'].value
+        try:
+            hour = float(self.arg_dict['hour'].value)
+            minute = float(self.arg_dict['minute'].value)
+            dhour = int(self.arg_dict['delta-hour'].value)
+        except ValueError:
+            return ResponseMsg(f'【{self.session_type}】输入时间格式有误')
+
         msg = self.arg_dict['message'].value
         user_id = str(self.arg_dict['user_id'].value)  # 已经设置default value
 
-        # 整理、检测合法性
-        try:
-            minute = float(minute) + float(hour) * 60  # 全部加到分钟上
-            minute = int(minute)  # 向下取整
-            hour = minute // 60
-            minute %= 60
-            hour %= 24
-            dhour = int(dhour)
-        except ValueError:
-            return ResponseMsg(f'【{self.session_type}】订阅失败：时间格式有误')
-
-        # 读取原数据
-        if os.path.exists(SUBS_LIST):
-            dfl = pd.read_excel(SUBS_LIST).to_dict('records')
+        if self.arg_dict['temp'].called:
+            temp_flag = 1
         else:
-            # 新建表格
-            dfl = []
+            temp_flag = 0
 
-        if dhour > 0:  # 重复，往后
-            for h in range(hour, 24, dhour):
-                dfl.append({'hour': h, 'minute': minute, 'user_id': user_id, 'message': msg})
-        elif dhour < 0:  # 重复，往回
-            for h in range(hour, -1, dhour):
-                dfl.append({'hour': h, 'minute': minute, 'user_id': user_id, 'message': msg})
-        else:  # 不重复
-            dfl.append({'hour': hour, 'minute': minute, 'user_id': user_id, 'message': msg})
+        brief = add_qq_subscription(hour=hour, minute=minute, dhour=dhour,
+                                    msg=msg, user_id=user_id, temp_flag=temp_flag,
+                                    get_brief=True)
 
-        # 保存数据
-        pd.DataFrame(dfl).to_excel(SUBS_LIST, index=False)
-
-        return ResponseMsg(f'【{self.session_type}】订阅成功：\n{hour:02d}:{minute:02d} - {user_id}\n{msg}\n'
+        return ResponseMsg(f'【{self.session_type}】订阅成功：\n{brief}\n'
                            f'（添加好友后可收取通知）')
 
 
@@ -154,13 +197,16 @@ class DelQQSubscriptionSession(ArgSession):
                         n += 1
                         self._indexes.append(i)
                         self._records.append(d)
-                        msg += f'{n}. ({d["hour"]:02d}:{d["minute"]:02d}) {d["message"]}\n'
+                        msg += f'{n}. ({d["hour"]:02d}:{d["minute"]:02d}'
+                        if d['temp']:
+                            msg += '|temp'
+                        msg += f') {d["message"]}\n'
                 if len(self._indexes) == 0:
                     self.deactivate()
                     return ResponseMsg(f'【{self.session_type}】未找到有关条目')
                 elif self.arg_dict['list'].called:
                     self.deactivate()
-                    return ResponseMsg(f'【{self.session_type}】找到以下条目：\n{msg}')
+                    return ResponseMsg(f'【{self.session_type} - 仅查看】找到以下条目：\n{msg}')
                 else:
                     return ResponseMsg(f'【{self.session_type}】找到以下条目：\n{msg}'
                                        f'请回复需要删除条目的序号（正整数），回复其他内容以取消')

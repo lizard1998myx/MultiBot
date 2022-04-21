@@ -6,6 +6,7 @@ from .classroom_schedule import classroom_cache_update
 from .covid_regions import covid_region_cache_update
 from .covid_data import covid_data_cache_update_schedule
 from .subscription import get_qq_subscriptions
+from .reminder import check_reminders
 import datetime
 
 # 2021-12-11: 支持分钟级，并加入订阅功能
@@ -31,16 +32,16 @@ class QQScheduleSession(Session):
         response_list = []
         now = datetime.datetime.now()
         if now.minute == 0:  # 整点
+            if 0 <= now.hour <= 2:
+                check_reminders()
             if now.hour == 3:
                 classroom_cache_update()
-            if now.hour in [8, 14, 20]:
-                covid_region_cache_update()
+            if 4 <= now.hour <= 6:
+                daily_run()
             if now.hour in [7, 10, 11, 12, 18]:
                 covid_data_cache_update_schedule()
-            if 4 <= now.hour <= 6:
-                subcovid_result = daily_run()
-                # subcovid_msg = f'【自动疫情填报】成功{subcovid_result['success']}个，失败{subcovid_result['fail']}个'
-                # response_list.append(ResponseGrpMsg(group_id=230697355, text=subcovid_msg))
+            if now.hour in [8, 14, 20]:
+                covid_region_cache_update()
             # if now.hour == 22:
             #     f = next_day_general().file
             #     response_list.append(ResponseGrpImg(group_id=865640538, file=f))  # 班群
