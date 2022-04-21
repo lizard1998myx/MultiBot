@@ -15,7 +15,8 @@ except FileNotFoundError:
                 'TURING_API_KEY', 'CAIYUN_API_TOKEN',
                 'BAIDU_MAP_API_TOKEN', 'CAIYUN_TRANS_TOKEN',
                 'WCP_TOKEN', 'WCP_APP_ID', 'WCP_APP_SECRET',
-                'SENDER_NAME', 'SENDER_ADDR', 'SENDER_PWD']
+                'SENDER_NAME', 'SENDER_ADDR', 'SENDER_PWD',
+                'SERVER_IP']
     pd.DataFrame({'api': api_list,
                   'token': [''] * len(api_list)}).to_excel(TOKEN_FILE, index=False)
     print(f'【MultiBot】please update your api tokens in {TOKEN_FILE}')
@@ -69,3 +70,5 @@ SENDER_PWD = TOKEN_DICT.get('SENDER_PWD')
 SENDER = {'name': SENDER_NAME,
           'address': SENDER_ADDR,
           'pwd': SENDER_PWD}
+
+SERVER_IP = TOKEN_DICT.get('SERVER_IP')

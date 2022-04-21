@@ -1,3 +1,5 @@
+from .api_tokens import SERVER_IP
+
 VERSION_LIST = [{'version': '1.0.0', 'date': '2021-01-22',
                  'info': '基本框架搭建，接入控制台（console）和QQ（cqhttp+NoneBot）'},
                 {'version': '1.1.0', 'date': '2021-01-23', 'info': '完善框架，加入定时任务和QQ群功能'},
@@ -88,6 +90,7 @@ VERSION_LIST = [{'version': '1.0.0', 'date': '2021-01-22',
                 {'version': '3.4.0', 'date': '2022-04-14', 'info': '优化订阅插件和跨平台部署'},
                 {'version': '3.4.1', 'date': '2022-04-18', 'info': '加入记账插件，修复国台填报插件'},
                 {'version': '3.4.2', 'date': '2022-04-19', 'info': '加入外部代码和数据引用，优化插件增强'},
+                {'version': '3.4.3', 'date': '2022-04-21', 'info': '加强订阅功能，新增基于订阅的定时任务提醒模块'},
                 ]
 
 INTRODUCTION = {'Default': f"你好！我是MultiBot（V{VERSION_LIST[-1]['version']}）。"
@@ -126,8 +129,8 @@ WebApp：用Flask实现的网页交互，只接收文本，但可以返回图片
 爬虫：空教室、疫情风险和感染数据、疫情填报、出校申报、成绩
 
 [网址]
-标准版：http://101.42.90.115/
-远程打印（已关闭）：http://101.42.90.115/upload/
+标准版：http://{SERVER_IP}/
+远程打印（已关闭）：http://{SERVER_IP}/upload/
 ipv6版：实验性，发送"ipv6 -l"获取地址
 
 [仓库]

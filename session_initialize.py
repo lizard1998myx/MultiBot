@@ -1,5 +1,5 @@
 from .sessions.general import IntroSession, DescriptionSession, VersionSession, HelpSession, \
-                              ErrorSession, HistorySession, RepeatSession, IdentitySession
+                              ErrorSession, HistorySession, RepeatSession, IdentitySession, EchoSession
 from .sessions.counter import CounterSession
 from .sessions.turing import TuringSession
 from .sessions.student_info import InfoSession
@@ -36,26 +36,27 @@ from .sessions.system_command import SystemCmdSession
 from .sessions.covid_data import CovidDataSession, CovidDataUpdateSession
 from .sessions.email_cas_trash import EmailCasTrashSession
 from .sessions.account_book import AccountUpdateSession
+from .sessions.reminder import AddReminderSession, DelReminderSession, UpdateReminderSession
 from .paths import PATHS
 import os
 
 # 普通任务启用的sessions
 NEW_SESSIONS = [IntroSession, DescriptionSession, VersionSession, HelpSession, ErrorSession, HistorySession,
-                StandbySession, RepeatSession, IdentitySession, CounterSession, TuringSession, InfoSession,
+                StandbySession, RepeatSession, IdentitySession, EchoSession, CounterSession, TuringSession,
                 OcrSession, ActiveAudioSession, PassiveAudioSession,
                 WeatherSession, TranslationSession,
                 NbnhhshSession, BookOfAnswersSession, WebImgSession,
                 FocusCubeSession, AsoulCnkiSession, UpSideDownTextSession, SlscqSession,
                 SubcovidSession, SubcovidManualSession, SubucassikSession, SepLoginSession,
-                SubNaocSession,
-                EmailCasTrashSession,
-                UserNoteSession,
+                SubNaocSession, EmailCasTrashSession,
+                UserNoteSession, InfoSession,
                 DeCodeSession, EnCodeSession, WolSession,
                 ClassroomScheduleSession, ClassroomScheduleUpdateSession,
                 CovidRiskSession, CovidRiskUpdateSession, CovidDataSession, CovidDataUpdateSession,
                 ArxivSession, AstroPlotSession, CosmoPlotSession, AutoBaiduSession, MusicSession,
                 AutoAnswerSession, AddAnswerSession, AutoAliasSession, AddAliasSession,
                 AddQQSubscriptionSession, DelQQSubscriptionSession, AccountUpdateSession,
+                AddReminderSession, DelReminderSession, UpdateReminderSession,
                 AddPermissionSession, DelPermissionSession, Ipv6AddrSession, SystemCmdSession,
                 CQCommandSession, CQRebootSession, CQGroupSuicideSession, CQGroupRandomSession]
 
