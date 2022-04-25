@@ -91,7 +91,7 @@ VERSION_LIST = [{'version': '1.0.0', 'date': '2021-01-22',
                 {'version': '3.4.1', 'date': '2022-04-18', 'info': '加入记账插件，修复国台填报插件'},
                 {'version': '3.4.2', 'date': '2022-04-19', 'info': '加入外部代码和数据引用，优化插件增强'},
                 {'version': '3.4.3', 'date': '2022-04-21', 'info': '加强订阅功能，新增基于订阅的定时任务提醒模块'},
-                {'version': '3.4.4', 'date': '2022-04-25', 'info': '加入记账统计功能'},
+                {'version': '3.4.4', 'date': '2022-04-25', 'info': '加入记账统计功能，增强天气模块'},
                 ]
 
 INTRODUCTION = {'Default': f"你好！我是MultiBot（V{VERSION_LIST[-1]['version']}）。"

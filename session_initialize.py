@@ -7,7 +7,7 @@ from .sessions.baidu_ocr import OcrSession
 from .sessions.qrcode import DeCodeSession, EnCodeSession
 from .sessions.cq_command import CQCommandSession, CQRebootSession
 from .sessions.cq_groups import CQGroupSuicideSession, CQGroupRandomSession
-from .sessions.weather import WeatherSession
+from .sessions.weather import WeatherSession, WindMapSession
 from .sessions.subcovid import SubcovidSession, SubcovidManualSession
 from .sessions.schedule import QQScheduleSession, WCScheduleSession
 from .sessions.classroom_schedule import ClassroomScheduleSession, ClassroomScheduleUpdateSession
@@ -44,7 +44,7 @@ import os
 NEW_SESSIONS = [IntroSession, DescriptionSession, VersionSession, HelpSession, ErrorSession, HistorySession,
                 StandbySession, RepeatSession, IdentitySession, EchoSession, CounterSession, TuringSession,
                 OcrSession, ActiveAudioSession, PassiveAudioSession,
-                WeatherSession, TranslationSession,
+                WeatherSession, WindMapSession, TranslationSession,
                 NbnhhshSession, BookOfAnswersSession, WebImgSession,
                 FocusCubeSession, AsoulCnkiSession, UpSideDownTextSession, SlscqSession,
                 SubcovidSession, SubcovidManualSession, SubucassikSession, SepLoginSession,
