@@ -35,8 +35,8 @@ from .sessions.ipv6addr import Ipv6AddrSession
 from .sessions.system_command import SystemCmdSession
 from .sessions.covid_data import CovidDataSession, CovidDataUpdateSession
 from .sessions.email_cas_trash import EmailCasTrashSession
-from .sessions.account_book import AccountUpdateSession
-from .sessions.reminder import AddReminderSession, DelReminderSession, UpdateReminderSession
+from .sessions.account_book import AccountUpdateSession, AccountViewSession
+from .sessions.reminder import AddReminderSession, DelReminderSession, UpdateReminderSession, CheckReminderSession
 from .paths import PATHS
 import os
 
@@ -55,8 +55,8 @@ NEW_SESSIONS = [IntroSession, DescriptionSession, VersionSession, HelpSession, E
                 CovidRiskSession, CovidRiskUpdateSession, CovidDataSession, CovidDataUpdateSession,
                 ArxivSession, AstroPlotSession, CosmoPlotSession, AutoBaiduSession, MusicSession,
                 AutoAnswerSession, AddAnswerSession, AutoAliasSession, AddAliasSession,
-                AddQQSubscriptionSession, DelQQSubscriptionSession, AccountUpdateSession,
-                AddReminderSession, DelReminderSession, UpdateReminderSession,
+                AddQQSubscriptionSession, DelQQSubscriptionSession, AccountUpdateSession, AccountViewSession,
+                AddReminderSession, DelReminderSession, UpdateReminderSession, CheckReminderSession,
                 AddPermissionSession, DelPermissionSession, Ipv6AddrSession, SystemCmdSession,
                 CQCommandSession, CQRebootSession, CQGroupSuicideSession, CQGroupRandomSession]
 
