@@ -2,11 +2,10 @@ from .argument import ArgSession, Argument
 from ..responses import ResponseMsg, ResponseImg
 from ..utils import format_filename
 from ..paths import PATHS
-import requests, os, bs4
+import requests, bs4
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
-TEMP_DIR = PATHS['temp']
 webdriver_dir = PATHS['webdriver']
 
 # 2021-12-06: 更新新版验证码，ehall cookies多次尝试
@@ -52,10 +51,9 @@ class SepLoginSession(ArgSession):
             self.loginer = SepLogin(username=self.arg_dict['username'].value,
                                     password=self.arg_dict['password'].value)
             self.loginer.get_basic_cookie()
-            code_img = format_filename(header='SepLogin', type='image', post='.jpg')
-            code_img_dir = os.path.join(TEMP_DIR, code_img)
-            self.loginer.get_code(code_filename=code_img_dir)
-            return [ResponseMsg(f'【{self.session_type}】请输入验证码'), ResponseImg(file=code_img_dir)]
+            code_img = format_filename(header='SepLogin', type='image', post='.jpg', abs_path=True)
+            self.loginer.get_code(code_filename=code_img)
+            return [ResponseMsg(f'【{self.session_type}】请输入验证码'), ResponseImg(file=code_img)]
         elif self.times_get_in == 2:
             # self.deactivate()
             responses = []

@@ -144,7 +144,7 @@ class FocusCubeSession(ArgSession):
                 ny = int(self.arg_dict['ny'].value)
             except ValueError:
                 pass
-        filename = format_filename(header='FocusCube', post='.jpg')
+        filename = format_filename(header='FocusCube', post='.jpg', abs_path=True)
         self.plot_focus_cube(filename=filename, nx=nx, ny=ny)
         return ResponseImg(filename)
 

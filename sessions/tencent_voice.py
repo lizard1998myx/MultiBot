@@ -1,4 +1,4 @@
-import requests, hmac, hashlib, base64, time, random, os, json, shutil
+import requests, hmac, hashlib, base64, time, json, shutil
 from ..api_tokens import TCT_APPID, TCT_SECRET_ID, TCT_SECRET_KEY
 from .argument import Argument, ArgSession
 from .general import Session

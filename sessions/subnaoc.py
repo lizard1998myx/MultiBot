@@ -5,14 +5,13 @@ from ..paths import PATHS
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException
-import time, traceback, os, threading, requests, base64
+import time, threading, requests, base64
 from ..utils import image_filename
 
 
 ZYK_ID = 3288849221
 BOT_COM_GROUP = 280506894
 webdriver_dir = PATHS['webdriver']
-TEMP_DIR = PATHS['temp']
 
 
 # 核心功能实现：后台driver
@@ -109,8 +108,7 @@ class SubNaocSession(Session):
                 self._requests_checkkey = r.json()['checkKey']
 
                 imgdata = base64.b64decode(r.json()['img'])
-                img_file = os.path.abspath(os.path.join(TEMP_DIR,
-                                                        image_filename(header='SubNaoc', post='.jpg')))
+                img_file = image_filename(header='SubNaoc', post='.jpg', abs_path=True)
                 with open(img_file, 'wb') as f:
                     f.write(imgdata)
                 return [ResponseMsg(f'【{self.session_type}】'
@@ -172,8 +170,7 @@ class SubNaocSession(Session):
                 # 获取登录二维码
                 url = 'https://docs.qq.com/desktop/'
                 dx.get(url=url)
-                img_file = os.path.abspath(os.path.join(TEMP_DIR,
-                                                        image_filename(header='SubNaoc', post='.png')))
+                img_file = image_filename(header='SubNaoc', post='.png', abs_path=True)
                 try:
                     dx.find_element_by_xpath('//div[@class="wechat inactive"]').click()
                 except NoSuchElementException:

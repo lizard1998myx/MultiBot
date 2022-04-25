@@ -2,7 +2,8 @@ from .general import Session
 from .argument import ArgSession, Argument
 from ..responses import ResponseMsg, ResponseImg
 from ..paths import PATHS
-import os, csv, shutil, datetime, random
+from ..utils import image_filename
+import os, csv, shutil, random
 
 BOX_DIR = PATHS['box']
 BOX_FILE = os.path.join(BOX_DIR, 'answer_box.csv')
@@ -157,7 +158,7 @@ class AddAnswerSession(ArgSession):
         image = self.arg_dict['image'].raw_req.img
         if image:
             self.answer_img = os.path.join(BOX_DIR,
-                                           datetime.datetime.now().strftime('box_image_%Y%m%d-%H%M%S.jpg'))
+                                           image_filename(header='AnswerBox', abs_path=False))
             shutil.copyfile(image, self.answer_img)
         else:
             self.answer_img = ''

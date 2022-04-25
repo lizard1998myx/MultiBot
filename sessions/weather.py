@@ -80,27 +80,27 @@ class WeatherSession(ArgSession):
 
             # get detail prediction
             if self.arg_dict['general'].called:  # add general report
-                filename = image_filename(header='WeatherGeneral')
+                filename = image_filename(header='WeatherGeneral', abs_path=True)
                 w_api.auto_plot_general(filename=filename, delta_days=delta_days)
                 responses.append(ResponseImg(file=filename))
 
             if self.arg_dict['wind'].called:  # add wind report
-                filename = image_filename(header='WeatherWind')
+                filename = image_filename(header='WeatherWind', abs_path=True)
                 w_api.auto_plot_winds(filename=filename, delta_days=delta_days)
                 responses.append((ResponseImg(file=filename)))
 
             if self.arg_dict['uv'].called:  # add uv flux report
-                filename = image_filename(header='WeatherUV')
+                filename = image_filename(header='WeatherUV', abs_path=True)
                 w_api.auto_plot_uv(filename=filename, delta_days=delta_days)
                 responses.append((ResponseImg(file=filename)))
 
             if self.arg_dict['air-pressure'].called:  # add air-pressure report
-                filename = image_filename(header='WeatherPressure')
+                filename = image_filename(header='WeatherPressure', abs_path=True)
                 w_api.auto_plot_pressure(filename=filename, delta_days=delta_days)
                 responses.append((ResponseImg(file=filename)))
 
             if self.arg_dict['precipitation'].called:  # rain
-                filename = image_filename(header='WeatherRain')
+                filename = image_filename(header='WeatherRain', abs_path=True)
                 w_api.auto_plot_p2h(filename=filename)
                 responses.append((ResponseImg(file=filename)))
 
@@ -114,7 +114,7 @@ class WindMapSession(ArgSession):
         ArgSession.__init__(self, user_id=user_id)
         self._max_delta = 60*2
         self.session_type = '风向图'
-        self.strict_commands = ['wind', 'wmap', '风向']
+        self.strict_commands = ['wind', 'wmap', '风向', '风力']
         self.description = '从彩云天气API（caiyunapp.com）获取给定地点风向图'
         self.add_arg(key='location', alias_list=['-l', '-loc'], required=True,
                      get_next=True, get_all=True,
@@ -122,10 +122,10 @@ class WindMapSession(ArgSession):
         self.add_arg(key='day', alias_list=['-d'],
                      get_next=True, default_value=0,
                      help_text='风力图的日期（距离0-2天，默认0）')
-        self.add_arg(key='hour', alias_list=['-h', '-hr'],
+        self.add_arg(key='hour', alias_list=['-hr'],
                      get_next=True, default_value=0,
                      help_text='风力图的时间（0-23时，默认0）')
-        self.add_arg(key='length', alias_list=['-l'],
+        self.add_arg(key='length', alias_list=['-len'],
                      get_next=True, default_value=10,
                      help_text='风力图的边长（km，默认10）')
         self.add_arg(key='deltalength', alias_list=['-dl'],
@@ -138,7 +138,7 @@ class WindMapSession(ArgSession):
         self.detail_description = '获取高可自定义性的风力分布图（默认为实时）；' \
                                   '风矢中长划线表示10节（5.14m/s），短划线表示5节（2.57m/s），' \
                                   '点数过多时会随机舍弃部分数据点。\n' \
-                                  '例如，“天气 北京市 -nr -wmap -wd 1 -wh 6 -wl 60 -wdl 5 -wfs 20”。'
+                                  '例如，“风向 北京市 -d 1 -hr 6 -len 60 -dl 5 -fs 20”。'
 
     def internal_handle(self, request):
         self.deactivate()
@@ -150,7 +150,7 @@ class WindMapSession(ArgSession):
                 w_api.set_location_from_string(location_string=self.arg_dict['location'].value)
 
             # get prediction
-            filename = image_filename(header='WindMap')
+            filename = image_filename(header='WindMap', abs_path=True)
             w_api.auto_plot_wind_map(length_km=float(self.arg_dict['length'].value),
                                      delta_km=float(self.arg_dict['deltalength'].value),
                                      filename=filename,
@@ -609,7 +609,7 @@ class WeatherAPI:
         # set title
         title = f'Wind Map {hour:02d}:00'
         if len(xlist) != (nx*ny):
-            title += f'({len(xlist)}/{nx*ny} points'
+            title += f' ({len(xlist)}/{nx*ny} points'
             if n_unexpected_errors > 0:
                 title += f' with {n_unexpected_errors} errors'
             title += ')'

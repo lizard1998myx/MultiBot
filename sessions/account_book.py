@@ -186,7 +186,7 @@ class AccountBook:
         total = np.sum(new_df['amount'])
 
         # plot
-        img_file = image_filename(header='AccountBook')
+        img_file = image_filename(header='AccountBook', abs_path=True)
         mpl.rc("font", family='SimHei')
         fig, ax = plt.subplots()
         ax.pie(group['amount'], labels=group.index, autopct='%3.1f%%')

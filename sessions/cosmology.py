@@ -1,11 +1,9 @@
 from ..utils import image_filename
 from .argument import ArgSession, Argument
 from ..responses import ResponseMsg, ResponseImg
-from ..paths import PATHS
 import numpy as np
 from scipy import integrate
 import matplotlib.pyplot as plt
-import os
 import traceback
 
 # 2021-12-14 迁移
@@ -103,7 +101,7 @@ class CosmoPlotSession(ArgSession):
         responses = []
         for fig_type in ['density', 'distance', 'jeans', 'growth']:
             if self.arg_dict[f'{fig_type}-fig'].called:
-                filename = os.path.join(PATHS['temp'], image_filename(header=f'Cosmo_{fig_type}'))
+                filename = image_filename(header=f'Cosmo_{fig_type}', abs_path=True)
                 plot_func = eval(f'PlotFunc.{fig_type}')
                 try:
                     plot_func(filename=filename, **plot_kwargs)

@@ -1,4 +1,4 @@
-from ..responses import ResponseGrpMsg, ResponseGrpImg
+from ..responses import ResponseGrpMsg
 from .general import Session
 from .subcovid import daily_run
 from .classroom_schedule import classroom_cache_update
@@ -41,13 +41,6 @@ class QQScheduleSession(Session):
                 covid_data_cache_update_schedule()
             if now.hour in [8, 14, 20]:
                 covid_region_cache_update()
-            # if now.hour == 22:
-            #     f = next_day_general().file
-            #     response_list.append(ResponseGrpImg(group_id=865640538, file=f))  # 班群
-            #     response_list.append(ResponseGrpImg(group_id=230697355, file=f))  # 测试群
-            # if now.hour % 20 == 0:
-            #     # 腾讯风控变严格，改为间隔12h报时
-            #     response_list.append(ResponseGrpMsg(group_id=230697355, text='【报时】现在%i点了' % now.hour))
         return response_list + get_qq_subscriptions(request=request, now=now)
 
 

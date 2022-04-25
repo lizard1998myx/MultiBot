@@ -5,11 +5,9 @@ from astropy.coordinates import SkyCoord, EarthLocation, AltAz, get_sun, get_moo
 from astropy.coordinates.name_resolve import NameResolveError
 import matplotlib.pyplot as plt
 import datetime
-import os
 from ..utils import image_filename
 from .argument import ArgSession, Argument
 from ..responses import ResponseMsg, ResponseImg
-from ..paths import PATHS
 
 
 class AstroPlotSession(ArgSession):
@@ -36,10 +34,10 @@ class AstroPlotSession(ArgSession):
     def internal_handle(self, request):
         self.deactivate()
         responses = []
-        altitude_filename = os.path.join(PATHS['temp'], image_filename(header='AstroAltitude'))
+        altitude_filename = image_filename(header='AstroAltitude', abs_path=True)
         responses.append(ResponseImg(file=altitude_filename))
         if self.arg_dict['polar'].called:
-            polar_filename = os.path.join(PATHS['temp'], image_filename(header='AstroPolar'))
+            polar_filename = image_filename(header='AstroPolar', abs_path=True)
             responses.append(ResponseImg(file=polar_filename))
         else:
             polar_filename = None
