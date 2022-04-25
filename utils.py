@@ -6,12 +6,20 @@ from .paths import PATHS
 TEMP_DIR = PATHS['temp']
 
 
-def image_filename(header='MultiBot', post='.jpg'):
-    return datetime.datetime.now().strftime('{}_image_%Y%m%d-%H%M%S{}'.format(header, post))
+def image_filename(header='MultiBot', post='.jpg', abs_path=True):
+    filename = datetime.datetime.now().strftime(f'{header}_image_%Y%m%d-%H%M%S{post}')
+    if abs_path:
+        return os.path.join(TEMP_DIR, filename)
+    else:
+        return filename
 
 
-def format_filename(header='MultiBot', type='image', post='.txt'):
-    return datetime.datetime.now().strftime(f'{header}_{type}_%Y%m%d-%H%M%S{post}')
+def format_filename(header='MultiBot', type='image', post='.txt', abs_path=True):
+    filename = datetime.datetime.now().strftime(f'{header}_{type}_%Y%m%d-%H%M%S{post}')
+    if abs_path:
+        return os.path.join(TEMP_DIR, filename)
+    else:
+        return filename
 
 
 def image_url_to_path(url, header='MultiBot', filename=None):
