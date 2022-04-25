@@ -1,8 +1,8 @@
-from .argument import ArgSession, Argument
+from .argument import ArgSession
 from ..responses import ResponseMsg, ResponseImg
 from ..api_tokens import CAIYUN_API_TOKEN, BAIDU_MAP_API_TOKEN
-from ..paths import PATHS
-import requests, urllib, datetime, os, math, re, threading, time, traceback, random
+from ..utils import image_filename
+import requests, urllib, datetime, math, re, threading, time, traceback, random
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
@@ -16,46 +16,33 @@ class WeatherSession(ArgSession):
         self.session_type = '天气插件'
         self.strict_commands = ['weather', '天气']
         self.description = '根据给定的地点查找经纬度，并从彩云天气API（caiyunapp.com）获取实时天气'
-        self.arg_list = [Argument(key='location', alias_list=['-l', '-loc'], required=True,
-                                  get_next=True, get_all=True,
-                                  ask_text='请返回要查找的地点或经纬度（逗号隔开）'),
-                         Argument(key='no-realtime', alias_list=['-nr'],
-                                  help_text='不获取实时天气'),
-                         Argument(key='general', alias_list=['-g'],
-                                  help_text='获取天气总览（温度、降水、空气质量、风力等，默认次日）'),
-                         Argument(key='wind', alias_list=['-w'],
-                                  help_text='获取风力预报（默认次日）'),
-                         Argument(key='precipitation', alias_list=['-p', '-p2h'],
-                                  help_text='获取2小时降雨预报'),
-                         Argument(key='today', alias_list=['-t'],
-                                  help_text='修改为获取今日天气（对天气总览与风力预报有效）'),
-                         Argument(key='day2', alias_list=['-d2'],
-                                  help_text='修改为获取后天天气，优先级次于today'),
-                         Argument(key='windmap', alias_list=['-wmap'],
-                                  help_text='获取高可自定义性的风力分布图（默认实时）；'
-                                            '风矢中长划线表示10节（5.14m/s），短划线表示5节（2.57m/s），'
-                                            '点数过多时会随机舍弃部分数据点'),
-                         Argument(key='windmap-day', alias_list=['-wmap-d', '-wd'],
-                                  get_next=True, default_value=0,
-                                  help_text='风力图的日期（距离0-2天，默认0）'),
-                         Argument(key='windmap-hour', alias_list=['-wmap-h', '-wh'],
-                                  get_next=True, default_value=0,
-                                  help_text='风力图的时间（0-23时，默认0）'),
-                         Argument(key='windmap-length', alias_list=['-wmap-l', '-wl'],
-                                  get_next=True, default_value=10,
-                                  help_text='风力图的边长（km，默认10）'),
-                         Argument(key='windmap-deltalength', alias_list=['-wmap-dl', '-wdl'],
-                                  get_next=True, default_value=1,
-                                  help_text='风力图的点间隔（km，默认1）'),
-                         Argument(key='windmap-figsize', alias_list=['-wmap-fs', '-wfs'],
-                                  get_next=True, default_value=8,
-                                  help_text='风力图的画布尺寸（matplotlib参数，默认8.0，建议不大于25）'),
-                         ]
+        self.add_arg(key='location', alias_list=['-l', '-loc'], required=True,
+                     get_next=True, get_all=True,
+                     ask_text='请返回要查找的地点或经纬度（逗号隔开）')
+        self.add_arg(key='no-realtime', alias_list=['-nr'],
+                     help_text='不返回实时天气')
+        self.add_arg(key='general', alias_list=['-g'],
+                     help_text='获取天气总览（温度、降水、空气质量、风力等）')
+        self.add_arg(key='wind', alias_list=['-w'],
+                     help_text='获取风力预报')
+        self.add_arg(key='uv', alias_list=['-u', '-uv'],
+                     help_text='获取紫外线流量预报')
+        self.add_arg(key='air-pressure', alias_list=['-ap'],
+                     help_text='获取大气压预报')
+        self.add_arg(key='precipitation', alias_list=['-p', '-p2h'],
+                     help_text='获取2小时降雨预报')
+        self.add_arg(key='day', alias_list=['-d'],
+                     get_next=True,
+                     default_value=1,
+                     help_text='获取天气预报的日期（0-今天，1-明天，2-后天）')
+        self.add_arg(key='today', alias_list=['-t'],
+                     help_text='等价于"--day 0"，优先级更高')
+        self.add_arg(key='day2', alias_list=['-d2'],
+                     help_text='等价于"--day 2"，优先级第二')
         self.default_arg = self.arg_list[0]
-        self.detail_description = '例如，可以直接发送“天气”后回复地理位置获取实时天气，或直接发送“天气 北京”获取信息。\n'\
-                                  '也可直接使用经纬度，如“天气 120.0,40.0”，注意不加空格，单命令行的空格是参数的分隔符。\n'\
-                                  '进阶可发送“天气 雁栖湖 -nr -w -t”获取今日（-t）风力预报（-w），且不获取实时天气（-nr）。\n' \
-                                  '风力图的获取方法如“天气 北京市 -nr -wmap -wd 1 -wh 6 -wl 60 -wdl 5 -wfs 20”。'
+        self.detail_description = '例如，可以直接发送“天气”后回复地理位置获取实时天气，或直接发送“天气 北京”获取信息。'\
+                                  '也可直接使用经纬度，如“天气 "120.0,40.0" ”。\n'\
+                                  '还能发送参数命令“天气 雁栖湖 -nr -w -t”查看今日（-t）风力（-w），且不获取实时天气（-nr）。'
 
     def is_legal_request(self, request):
         if not self._is_first_time and request.loc is not None:
@@ -70,29 +57,11 @@ class WeatherSession(ArgSession):
             if self.arg_dict['location'].raw_req.loc is not None:
                 w_api = WeatherAPI(**request.loc)
             else:
-                loc_str = self.arg_dict['location'].value
-                use_coord = False
-                # try coordinates
-                if ',' in loc_str or '，' in loc_str:
-                    coord_str = re.split(pattern='[,，]', string=loc_str)
-                    # coord_str = loc_str.split(',', '，')
-                    try:
-                        assert len(coord_str) == 2
-                        longitude = float(coord_str[0])
-                        latitude = float(coord_str[1])
-                        assert -180.0 < longitude < 180.0
-                        assert -90.0 < latitude < 90.0
-                        use_coord = True
-                        w_api = WeatherAPI(longitude=longitude, latitude=latitude)
-                    except ValueError:
-                        pass
-                    except AssertionError:
-                        pass
-                # use city name instead
-                if not use_coord:
-                    w_api = WeatherAPI()
-                    w_api.set_city(city_name=self.arg_dict['location'].value)
-            if not self.arg_dict['no-realtime'].called:  # add general report
+                w_api = WeatherAPI()
+                w_api.set_location_from_string(location_string=self.arg_dict['location'].value)
+
+            # add general report (realtime)
+            if not self.arg_dict['no-realtime'].called:
                 responses.append(ResponseMsg(w_api.realtime_report()))
 
             # select target date
@@ -100,42 +69,97 @@ class WeatherSession(ArgSession):
                 delta_days = 0
             elif self.arg_dict['day2'].called:
                 delta_days = 2
-            else:
-                delta_days = 1
+            else:  # 最后，从day参数获取时间
+                try:
+                    delta_days = int(self.arg_dict['day'].value)
+                    assert 0 <= delta_days <= 2
+                except ValueError:
+                    return ResponseMsg(f'【{self.session_type}】日期格式输入有误。')
+                except AssertionError:
+                    return ResponseMsg(f'【{self.session_type}】时间超出，仅支持近48h天气预报。')
 
             # get detail prediction
             if self.arg_dict['general'].called:  # add general report
-                filename = os.path.abspath(os.path.join(PATHS['temp'],
-                                                        '%s_Next_day_general.jpg' % datetime.date.today().isoformat()))
+                filename = image_filename(header='WeatherGeneral')
                 w_api.auto_plot_general(filename=filename, delta_days=delta_days)
                 responses.append(ResponseImg(file=filename))
 
             if self.arg_dict['wind'].called:  # add wind report
-                filename = os.path.abspath(os.path.join(PATHS['temp'],
-                                                        '%s_Next_day_wind.jpg' % datetime.date.today().isoformat()))
+                filename = image_filename(header='WeatherWind')
                 w_api.auto_plot_winds(filename=filename, delta_days=delta_days)
                 responses.append((ResponseImg(file=filename)))
 
-            if self.arg_dict['precipitation'].called:
-                filename = os.path.abspath(os.path.join(PATHS['temp'],
-                                                        '%s_2h_precipitation.jpg' % datetime.date.today().isoformat()))
-                w_api.auto_plot_p2h(filename=filename)
+            if self.arg_dict['uv'].called:  # add uv flux report
+                filename = image_filename(header='WeatherUV')
+                w_api.auto_plot_uv(filename=filename, delta_days=delta_days)
                 responses.append((ResponseImg(file=filename)))
 
-            if self.arg_dict['windmap'].called:  # add wind map report
-                filename = os.path.abspath(os.path.join(PATHS['temp'],
-                                                        '%s_wind_map.jpg' % datetime.date.today().isoformat()))
-                w_api.auto_plot_wind_map(length_km=float(self.arg_dict['windmap-length'].value),
-                                         delta_km=float(self.arg_dict['windmap-deltalength'].value),
-                                         filename=filename,
-                                         delta_days=int(self.arg_dict['windmap-day'].value),
-                                         hour=int(self.arg_dict['windmap-hour'].value),
-                                         figsize=float(self.arg_dict['windmap-figsize'].value))
+            if self.arg_dict['air-pressure'].called:  # add air-pressure report
+                filename = image_filename(header='WeatherPressure')
+                w_api.auto_plot_pressure(filename=filename, delta_days=delta_days)
+                responses.append((ResponseImg(file=filename)))
+
+            if self.arg_dict['precipitation'].called:  # rain
+                filename = image_filename(header='WeatherRain')
+                w_api.auto_plot_p2h(filename=filename)
                 responses.append((ResponseImg(file=filename)))
 
             return responses
         except KeyError:
-            return ResponseMsg('【%s】天气查询异常' % self.session_type)
+            return ResponseMsg(f'【{self.session_type}】天气查询异常')
+
+
+class WindMapSession(ArgSession):
+    def __init__(self, user_id):
+        ArgSession.__init__(self, user_id=user_id)
+        self._max_delta = 60*2
+        self.session_type = '风向图'
+        self.strict_commands = ['wind', 'wmap', '风向']
+        self.description = '从彩云天气API（caiyunapp.com）获取给定地点风向图'
+        self.add_arg(key='location', alias_list=['-l', '-loc'], required=True,
+                     get_next=True, get_all=True,
+                     ask_text='请返回要查找的地点或经纬度（逗号隔开）')
+        self.add_arg(key='day', alias_list=['-d'],
+                     get_next=True, default_value=0,
+                     help_text='风力图的日期（距离0-2天，默认0）')
+        self.add_arg(key='hour', alias_list=['-h', '-hr'],
+                     get_next=True, default_value=0,
+                     help_text='风力图的时间（0-23时，默认0）')
+        self.add_arg(key='length', alias_list=['-l'],
+                     get_next=True, default_value=10,
+                     help_text='风力图的边长（km，默认10）')
+        self.add_arg(key='deltalength', alias_list=['-dl'],
+                     get_next=True, default_value=1,
+                     help_text='风力图的点间隔（km，默认1）')
+        self.add_arg(key='figsize', alias_list=['-fs'],
+                     get_next=True, default_value=8,
+                     help_text='风力图的画布尺寸（matplotlib参数，默认8.0，建议不大于25）')
+        self.default_arg = self.arg_list[0]  # location
+        self.detail_description = '获取高可自定义性的风力分布图（默认为实时）；' \
+                                  '风矢中长划线表示10节（5.14m/s），短划线表示5节（2.57m/s），' \
+                                  '点数过多时会随机舍弃部分数据点。\n' \
+                                  '例如，“天气 北京市 -nr -wmap -wd 1 -wh 6 -wl 60 -wdl 5 -wfs 20”。'
+
+    def internal_handle(self, request):
+        self.deactivate()
+        try:
+            if self.arg_dict['location'].raw_req.loc is not None:
+                w_api = WeatherAPI(**request.loc)
+            else:
+                w_api = WeatherAPI()
+                w_api.set_location_from_string(location_string=self.arg_dict['location'].value)
+
+            # get prediction
+            filename = image_filename(header='WindMap')
+            w_api.auto_plot_wind_map(length_km=float(self.arg_dict['length'].value),
+                                     delta_km=float(self.arg_dict['deltalength'].value),
+                                     filename=filename,
+                                     delta_days=int(self.arg_dict['day'].value),
+                                     hour=int(self.arg_dict['hour'].value),
+                                     figsize=float(self.arg_dict['figsize'].value))
+            return ResponseImg(file=filename)
+        except KeyError:
+            return ResponseMsg(f'【{self.session_type}】天气查询异常')
 
 
 class WeatherAPI:
@@ -156,6 +180,27 @@ class WeatherAPI:
             self.resp_dict = resp.json()
         return self.resp_dict
 
+    def set_location_from_string(self, location_string):
+        # try coordinates
+        if ',' in location_string or '，' in location_string:
+            coord_str = re.split(pattern='[,，]', string=location_string)
+            # coord_str = loc_str.split(',', '，')
+            try:
+                assert len(coord_str) == 2
+                longitude = float(coord_str[0])
+                latitude = float(coord_str[1])
+                assert -180.0 < longitude < 180.0
+                assert -90.0 < latitude < 90.0
+                self.longitude = longitude
+                self.latitude = latitude
+                return
+            except ValueError:
+                pass
+            except AssertionError:
+                pass
+        # not coordinates
+        self.set_city(city_name=location_string)
+
     def set_city(self, city_name):
         resp = requests.get('http://api.map.baidu.com/geocoding/v3/?address=%s&output=json&ak=%s'
                             % (urllib.request.quote(city_name), BAIDU_MAP_API_TOKEN))
@@ -175,22 +220,26 @@ class WeatherAPI:
     def realtime_report(self):
         results = self.get_resp(url=self.general_url())
         rdict = results['result']['realtime']
-        realtime_string = '温度[%.2f ℃]，相对湿度[%.0f%%]\n' % (rdict['temperature'], 100 * rdict['humidity']) + \
-                          '云量[%.0f%%]，天气状况[%s]\n' % (100 * rdict['cloudrate'], rdict['skycon']) + \
-                          '能见度[%.1f km]，向下短波辐射通量[%.1f W/M2]\n' % (rdict['visibility'], rdict['dswrf']) + \
-                          '风速[%.2f kmph]，风向[%.1f°]\n' % (rdict['wind']['speed'], rdict['wind']['direction']) + \
-                          '压强[%.1f Pa]，体感温度[%.1f ℃]\n' % (rdict['pressure'], rdict['apparent_temperature']) + \
-                          '本地降水：强度[%.1f]\n' % rdict['precipitation']['local']['intensity'] + \
-                          '最近降水：距离[%.1f km]，强度[%.1f]\n' % (rdict['precipitation']['nearest']['distance'],
-                                                           rdict['precipitation']['nearest']['intensity']) + \
-                          '空气污染物浓度(默认μg/m3)：pm2.5[%.0f]，pm10[%.0f]，臭氧[%.1f]，二氧化氮[%.1f]，二氧化硫[%.1f]，一氧化碳[%.1f mg/m3]\n' % (
-                          rdict['air_quality']['pm25'], rdict['air_quality']['pm10'], rdict['air_quality']['o3'],
-                          rdict['air_quality']['no2'], rdict['air_quality']['so2'], rdict['air_quality']['co']) + \
-                          'AQI：中国[%.0f]，美国[%.0f]\n' % (
-                          rdict['air_quality']['aqi']['chn'], rdict['air_quality']['aqi']['usa']) + \
-                          '生活指数：紫外线[%.1f(%s)]，舒适度[%i(%s)]' % (
-                          rdict['life_index']['ultraviolet']['index'], rdict['life_index']['ultraviolet']['desc'],
-                          rdict['life_index']['comfort']['index'], rdict['life_index']['comfort']['desc'])
+
+        realtime_string = f"温度[{rdict['temperature']:.2f} ℃]，相对湿度[{100 * rdict['humidity']:.0f}%]\n" \
+                          f"云量[{100 * rdict['cloudrate']:.0f}%]，天气状况[{rdict['skycon']}]\n" \
+                          f"能见度[{rdict['visibility']:.1f} km]，向下短波辐射通量[{rdict['dswrf']:.1f} W/M2]\n" \
+                          f"风速[{rdict['wind']['speed']:.2f} kmph]，风向[{rdict['wind']['direction']:.1f}°]\n" \
+                          f"压强[{rdict['pressure']:.1f} Pa]，体感温度[{rdict['apparent_temperature']:.1f} ℃]\n" \
+                          f"本地降水：强度[{rdict['precipitation']['local']['intensity']:.1f}]\n" \
+                          f"最近降水：距离[{rdict['precipitation']['nearest']['distance']:.1f} km]，" \
+                          f"强度[{rdict['precipitation']['nearest']['intensity']:.1f}]\n" \
+                          f"空气污染物浓度(默认μg/m3)：pm2.5[{rdict['air_quality']['pm25']:.0f}]，" \
+                          f"pm10[{rdict['air_quality']['pm10']:.0f}]，臭氧[{rdict['air_quality']['o3']:.1f}]，" \
+                          f"二氧化氮[{rdict['air_quality']['no2']:.1f}]，二氧化硫[{rdict['air_quality']['so2']:.1f}]，" \
+                          f"一氧化碳[{rdict['air_quality']['co']:.1f} mg/m3]\n" \
+                          f"AQI：中国[{rdict['air_quality']['aqi']['chn']:.0f}]，" \
+                          f"美国[{rdict['air_quality']['aqi']['usa']:.0f}]\n" \
+                          f"生活指数：紫外线[{rdict['life_index']['ultraviolet']['index']:.1f}" \
+                          f"({rdict['life_index']['ultraviolet']['desc']})]，" \
+                          f"舒适度[{rdict['life_index']['comfort']['index']}" \
+                          f"({rdict['life_index']['comfort']['desc']})]"
+
         return f'== 实时天气@{self.longitude:.2f},{self.latitude:.2f} ==\n{self.get_city()}\n{realtime_string}'
 
     @staticmethod
@@ -199,6 +248,12 @@ class WeatherAPI:
         for key in path_list:
             result = result[key]
         return result
+
+    @staticmethod
+    def _date_brief(date: datetime.date):
+        # 输出时间标记，形如 04-25 Mon
+        week_briefs = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        return f'{date.strftime("%m-%d")} {week_briefs[date.weekday()]}'
 
     def next_day_data(self, path_to_data=['result', 'hourly', 'temperature'],
                       path_to_datetime=['datetime'], path_to_value=['value']):
@@ -218,7 +273,7 @@ class WeatherAPI:
             if tag_time.day == target_date.day:
                 hour_list.append(tag_time.hour)
                 value_list.append(self._locate_from_path(tag, path_to_value))
-        return {'date': target_date.isoformat(),
+        return {'date': self._date_brief(target_date),
                 'hour': hour_list, 'value': value_list}
 
     def next_day_wind(self):
@@ -240,7 +295,7 @@ class WeatherAPI:
         ax.plot(hour_list, temp_list)
         ax.set_xlabel('Hour')
         ax.set_ylabel('Temperature[℃]')
-        ax.set_title('Hourly Temperature %s' % date)
+        ax.set_title('Hourly Temperature [%s]' % date)
         ax.grid()
         fig.tight_layout()
         fig.savefig(filename)
@@ -269,7 +324,7 @@ class WeatherAPI:
         ax1.set_ylim(-5, 30)
         ax1.set_xlabel('Time [H]')
         ax1.set_ylabel('Temperature [℃]')
-        ax1.set_title('Weather Forecast %s' % a['date'])
+        ax1.set_title('Weather [%s]' % a['date'])
         ax1.grid()
         ax2 = ax1.twinx()
         ln2 = self._next_day_plotter(ax2, a, label='AQI', plot_kwargs={'color': 'orange'})
@@ -287,9 +342,33 @@ class WeatherAPI:
         self._wind_plotter(ax, w)
         ax.set_xlabel('Time [h]')
         ax.set_ylabel('Wind Speed [m/s]')
-        ax.set_title('Wind Forcast %s' % w['date'])
+        ax.set_title('Wind Forcast [%s]' % w['date'])
         fig.tight_layout()
         fig.savefig(filename)
+
+    def auto_plot_hourly(self, filename, delta_days, path_to_data,
+                         ylabel, title):
+        data = self.delta_day_data(path_to_data=path_to_data, delta_days=delta_days)
+        fig, ax = plt.subplots(figsize=(4, 3))
+        self._next_day_plotter(ax=ax, data_dict=data, label='')
+        ax.set_xlabel('Hour')
+        ax.set_ylabel(ylabel)
+        ax.set_title(f'{title} [{data["date"]}]')
+        ax.grid()
+        fig.tight_layout()
+        fig.savefig(filename)
+
+    def auto_plot_uv(self, filename, delta_days=1):
+        self.auto_plot_hourly(filename=filename, delta_days=delta_days,
+                              path_to_data=['result', 'hourly', 'dswrf'],
+                              ylabel=r'Flux [$ \rm W/m^2 $]',
+                              title='Downwards UV Flux')
+
+    def auto_plot_pressure(self, filename, delta_days=1):
+        self.auto_plot_hourly(filename=filename, delta_days=delta_days,
+                              path_to_data=['result', 'hourly', 'pressure'],
+                              ylabel=r'Pressure [Pa]',
+                              title='Hourly Air Pressure')
 
     def auto_plot_general(self, filename, delta_days=1):
         temp = self.delta_day_data(path_to_data=['result', 'hourly', 'temperature'], delta_days=delta_days)
@@ -326,7 +405,7 @@ class WeatherAPI:
 
         axs[0].set_ylim(ymin_set, ymax_set)
         axs[0].set_ylabel('Temperature [℃]')
-        axs[0].set_title('Weather Forecast %s' % temp['date'])
+        axs[0].set_title('Weather [%s]' % temp['date'])
         axs[0].grid()
         ax0b = axs[0].twinx()
         ln0b = self._next_day_plotter(ax0b, precipitation, label='Precipitation', plot_kwargs={'color': 'royalblue'})
@@ -392,7 +471,7 @@ class WeatherAPI:
         fig.tight_layout()
         fig.savefig(filename)
 
-    def auto_plot_wind_map(self, length_km, delta_km, filename, delta_days=1, hour=12, figsize=8, max_points=100):
+    def auto_plot_wind_map(self, length_km, delta_km, filename, delta_days=1, hour=12, figsize=8., max_points=100):
         # overlay wind map on BaiduMap
         # optimized with threading
 
@@ -577,39 +656,3 @@ class WapiThread(threading.Thread):
             self.unexpected_error = True
             self.fail_reason = traceback.format_exc()
 
-
-def next_day_temperature(longitude=116.33, latitude=39.98):
-    wapi = WeatherAPI(longitude=longitude, latitude=latitude)
-    filename = os.path.abspath(os.path.join(PATHS['temp'],
-                                            '%s_Next_day_weather.jpg' % datetime.date.today().isoformat()))
-    wapi.plot_temperature(**wapi.next_day_temperature(), filename=filename)
-    return ResponseImg(file=filename)
-
-
-def next_day_t_a(longitude=116.33, latitude=39.98):
-    wapi = WeatherAPI(longitude=longitude, latitude=latitude)
-    filename = os.path.abspath(os.path.join(PATHS['temp'],
-                                            '%s_Next_day_t_a.jpg' % datetime.date.today().isoformat()))
-    wapi.auto_plot_t_a(filename=filename)
-    return ResponseImg(file=filename)
-
-
-def next_day_general(longitude=116.33, latitude=39.98):
-    wapi = WeatherAPI(longitude=longitude, latitude=latitude)
-    filename = os.path.abspath(os.path.join(PATHS['temp'],
-                                            '%s_Next_day_general.jpg' % datetime.date.today().isoformat()))
-    wapi.auto_plot_general(filename=filename)
-    return ResponseImg(file=filename)
-
-
-def next_day_wind(longitude=116.33, latitude=39.98):
-    wapi = WeatherAPI(longitude=longitude, latitude=latitude)
-    filename = os.path.abspath(os.path.join(PATHS['temp'],
-                                            '%s_Next_day_wind.jpg' % datetime.date.today().isoformat()))
-    wapi.auto_plot_winds(filename=filename)
-    return ResponseImg(file=filename)
-
-
-def realtime_weather(longitude=116.33, latitude=39.98):
-    wapi = WeatherAPI(longitude=longitude, latitude=latitude)
-    return wapi.realtime_report()

@@ -1,7 +1,6 @@
 from ..responses import ResponseGrpMsg, ResponseGrpImg
 from .general import Session
 from .subcovid import daily_run
-from .weather import next_day_general
 from .classroom_schedule import classroom_cache_update
 from .covid_regions import covid_region_cache_update
 from .covid_data import covid_data_cache_update_schedule
