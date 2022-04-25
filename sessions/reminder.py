@@ -12,7 +12,7 @@ REMINDER_TABLE_FILE = os.path.join(PATHS['data'], 'reminder_tables.xlsx')
 def check_reminders():
     record_expired = ReminderTable().get_expired(user_id=None)
     for d in record_expired:
-        add_qq_subscription(hour=d['inform_h'], temp_flag=0, no_repeat=True,
+        add_qq_subscription(hour=d['inform_h'], temp=True, no_repeat=True,
                             user_id=d['user_id'], msg=f'echo {d["inform_msg"]}')
 
 
@@ -119,7 +119,7 @@ class DelReminderSession(ArgSession):
                 self.deactivate()
                 return ResponseMsg(f'【{self.session_type} - 仅查看】找到以下条目：\n{msg}')
             else:
-                return ResponseMsg(f'【{self.session_type} - 删除】找到以下条目：\n{msg}'
+                return ResponseMsg(f'【{self.session_type} - 删除】找到以下条目：\n{msg}\n'
                                    f'请回复需要删除条目的序号（正整数），回复其他内容以取消')
         else:
             try:
@@ -157,7 +157,7 @@ class UpdateReminderSession(ArgSession):
         self.add_arg(key='event', alias_list=['-e'],
                      required=True, get_next=True,
                      help_text='提醒事件名称',
-                     ask_text='要更新哪个提醒时间？')
+                     ask_text='要更新哪个提醒事件？')
         self.add_arg(key='delta', alias_list=['-d'],
                      required=False, get_next=True,
                      default_value=0,
@@ -187,6 +187,20 @@ class UpdateReminderSession(ArgSession):
             date_updated = d_new['date']
             return ResponseMsg(f'【{self.session_type}】完成[{d_found["event"]}]时间更新：\n'
                                f'{date_original} -> {date_updated}')
+
+
+class CheckReminderSession(ArgSession):
+    def __init__(self, user_id):
+        ArgSession.__init__(self, user_id=user_id)
+        self.session_type = '检查提醒'
+        self.description = '任务提醒模块的检查功能，上报给订阅器'
+        self._max_delta = 60
+        self.strict_commands = ['检查提醒', 'ChkRem']
+
+    def internal_handle(self, request):
+        self.deactivate()
+        check_reminders()
+        return ResponseMsg(f'【{self.session_type}】done')
 
 
 class ReminderTable:
@@ -242,6 +256,7 @@ class ReminderTable:
         records_expired = []
         for d in records_all:
             delta_days = datetime.date.today() - datetime.date.fromisoformat(d['date'])
+            delta_days = delta_days.days
             if delta_days >= d['max_delta']:  # 过期
                 records_expired.append(d)
             elif delta_days == d['max_delta'] + 1:  # 差一天过期，但超过提醒时间了

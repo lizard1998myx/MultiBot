@@ -27,7 +27,7 @@ def get_qq_subscriptions(request, now=None):
             new_r = request.new(msg=i['message'])
             new_r.user_id = str(i['user_id'])
             request_list.append(new_r)
-            if i['temp']:  # 临时项目
+            if i['temp'] == 1:  # 临时项目
                 expire_list.append(i)
 
     # 去除过期项目（temp项）
@@ -37,14 +37,14 @@ def get_qq_subscriptions(request, now=None):
         for i in dfl:
             if i not in expire_list:
                 new_dfl.append(i)
-        pd.DataFrame(dfl).to_excel(SUBS_LIST)
+        pd.DataFrame(new_dfl).to_excel(SUBS_LIST, index=False)
 
     return request_list
 
 
 # 添加新的订阅，用于AddSubscription插件和其他
 # 如果用类封装会更好
-def add_qq_subscription(hour, msg, user_id, minute=0, dhour=0, temp_flag=0, no_repeat=False, get_brief=False):
+def add_qq_subscription(hour, msg, user_id, minute=0, dhour=0, temp=False, no_repeat=False, get_brief=False):
     # 整理、检测合法性
     minute = float(minute) + float(hour) * 60  # 全部加到分钟上
     minute = int(minute)  # 向下取整
@@ -53,6 +53,11 @@ def add_qq_subscription(hour, msg, user_id, minute=0, dhour=0, temp_flag=0, no_r
     hour %= 24
     dhour = int(dhour)
     user_id = str(user_id)
+
+    if temp:
+        temp_flag = 1
+    else:
+        temp_flag = 0
 
     # 读取原数据
     if os.path.exists(SUBS_LIST):
@@ -145,13 +150,9 @@ class AddQQSubscriptionSession(ArgSession):
         msg = self.arg_dict['message'].value
         user_id = str(self.arg_dict['user_id'].value)  # 已经设置default value
 
-        if self.arg_dict['temp'].called:
-            temp_flag = 1
-        else:
-            temp_flag = 0
-
         brief = add_qq_subscription(hour=hour, minute=minute, dhour=dhour,
-                                    msg=msg, user_id=user_id, temp_flag=temp_flag,
+                                    msg=msg, user_id=user_id,
+                                    temp=self.arg_dict['temp'].called,
                                     get_brief=True)
 
         return ResponseMsg(f'【{self.session_type}】订阅成功：\n{brief}\n'

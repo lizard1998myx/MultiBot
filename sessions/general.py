@@ -173,6 +173,9 @@ class EchoSession(Session):
         self.extend_commands = ['echo', '回声']
         self.session_type = '回声'
 
+    def probability_to_call(self, request):
+        return self._called_by_command(request=request, extend_p=80, strict_p=0)
+
     def handle(self, request):
         self.deactivate()
         msg = request.msg
