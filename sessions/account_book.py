@@ -188,8 +188,10 @@ class AccountBook:
         # plot
         img_file = image_filename(header='AccountBook')
         mpl.rc("font", family='SimHei')
-        plt.pie(group['amount'], labels=group.index, autopct='%3.1f%%')
-        plt.savefig(img_file)
+        fig, ax = plt.subplots()
+        ax.pie(group['amount'], labels=group.index, autopct='%3.1f%%')
+        fig.tight_layout()
+        fig.savefig(img_file)
 
         return {'msg': f'分类统计:\n{group.amount}\n总计:{total}',
                 'img': img_file,
