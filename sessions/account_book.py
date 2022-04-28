@@ -3,12 +3,12 @@ from ..responses import ResponseMsg, ResponseImg
 from ..paths import PATHS
 from ..utils import image_filename
 from ..permissions import get_permissions
+from ..external.record_table import RecordTable, RecordNotFoundError
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import datetime, os
-
 
 ACCOUNT_DIR = os.path.join(PATHS['data'], 'accounts')
 if os.path.exists(ACCOUNT_DIR):
@@ -93,7 +93,12 @@ class AccountViewSession(ArgSession):
         self.session_type = '账本统计'
         self.description = '查看账本统计信息'
         self._max_delta = 60
-        self.strict_commands = ['查看账本', '账本统计', '记账统计']
+        commands = []
+        for a in ['查看', '统计']:
+            for b in ['账本', '账单']:
+                commands.append(a+b)
+                commands.append(b+a)
+        self.strict_commands = commands
         self.permissions = get_permissions().get('AccountView', {})
         self.add_arg(key='book', alias_list=['-bk', '-b'],
                      required=False, get_next=True,
@@ -139,33 +144,97 @@ class AccountViewSession(ArgSession):
                 ResponseImg(statistics['img'])]
 
 
-class AccountBook:
-    def __init__(self, book_name):
-        self.table_file = os.path.join(ACCOUNT_DIR, f'{book_name}.xlsx')
+class AccountDelSession(ArgSession):
+    def __init__(self, user_id):
+        ArgSession.__init__(self, user_id=user_id)
+        self.session_type = '账本删改'
+        self.description = '删改账本条目'
+        self._max_delta = 60
+        commands = []
+        for a in ['删除', '删改']:
+            for b in ['账本', '账单']:
+                commands.append(a+b)
+                commands.append(b+a)
+        self.strict_commands = commands
+        self.permissions = get_permissions().get('AccountView', {})
+        self.add_arg(key='book', alias_list=['-bk', '-b'],
+                     required=False, get_next=True,
+                     default_value=user_id,
+                     help_text='最高一级，账本名称（默认QQ号）',
+                     ask_text='账本名称是？')
+        self.add_arg(key='n_items', alias_list=['-n'],
+                     required=False, get_next=True,
+                     default_value=5,
+                     help_text='查阅的条目数')
+        self.default_arg = None  # 没有缺省argument
+        self.this_first_time = True
+        self.record_table = None
 
-    def is_exist(self):
-        return os.path.exists(self.table_file)
+    def prior_handle_test(self, request):
+        if request.platform != 'CQ':
+            self.arg_dict['book'].required = True  # 其他平台变更订阅属性
+
+    def internal_handle(self, request):
+        if self.this_first_time:
+            self.this_first_time = False
+
+            # 检查输入n_items
+            try:
+                n_items = int(self.arg_dict['n_items'].value)
+                if n_items <= 0:
+                    raise ValueError
+            except ValueError:
+                self.deactivate()
+                return ResponseMsg(f'【{self.session_type}】数值输入有误')
+
+            self.record_table = AccountBook(book_name=str(self.arg_dict['book'].value))
+            record_list = self.record_table.find_all()[-n_items:]  # 只看一部分
+
+            if len(record_list) == 0:
+                self.deactivate()
+                return ResponseMsg(f'【{self.session_type}】未找到条目')
+            else:
+                return ResponseMsg(f'【{self.session_type} - 删除】找到以下条目：\n'
+                                   f'{self.record_table.list_records(record_list=record_list)}\n'
+                                   f'请回复需要删除条目的序号（正整数），回复其他内容以取消')
+
+        else:  # 删除条目
+            try:
+                d_del = self.record_table.pop_by_index(index=request.msg, from_new=True)
+            except ValueError:
+                self.deactivate()
+                return ResponseMsg(f'【{self.session_type}】退出')
+            except RecordNotFoundError:
+                self.deactivate()
+                return ResponseMsg(f'【{self.session_type}】未找到相符记录，退出')
+            except IndexError:
+                self.deactivate()
+                return ResponseMsg(f'【{self.session_type}】序号超出范围，退出')
+            else:
+                return ResponseMsg(f'【{self.session_type}】已删除条目:\n'
+                                   f'{d_del}\n'
+                                   f'请回复需继续删除的条目序号')
+
+
+class AccountBook(RecordTable):
+    def __init__(self, book_name):
+        RecordTable.__init__(self, table_file=os.path.join(ACCOUNT_DIR, f'{book_name}.xlsx'))
 
     def append(self, platform, user_id,
                user_tag='nobody', category='expense',
                content='nothing', place='nowhere', amount=0, note=''):
         append_date, append_time = datetime.datetime.now().isoformat().split('T')
 
-        # 读取原数据
-        if os.path.exists(self.table_file):
-            dfl = pd.read_excel(self.table_file).to_dict('records')
-        else:
-            # 新建表格
-            dfl = []
+        self.append_full({'date': append_date, 'time': append_time,
+                          'platform': platform, 'user_id': user_id,
+                          'user_tag': user_tag, 'category': category,
+                          'content': content, 'place': place,
+                          'amount': amount, 'note': note})
 
-        dfl.append({'date': append_date, 'time': append_time,
-                    'platform': platform, 'user_id': user_id,
-                    'user_tag': user_tag, 'category': category,
-                    'content': content, 'place': place,
-                    'amount': amount, 'note': note})
-
-        # 保存数据
-        pd.DataFrame(dfl).to_excel(self.table_file, index=False)
+    @staticmethod
+    def list_single_record(record) -> str:
+        return f"{record['date'][-5:]} {record['time'][:5]} by {record['user_id']}\n" \
+               f"{record['category']}/{record['content']}/{record['place']}/{record['amount']}"
 
     # via xgg 20220423
     def statistics(self, date_initial: datetime.date, date_final: datetime.date):
@@ -229,12 +298,6 @@ class AccountBook:
                 month_list.append(previous_month(month_list[-1]))
             return self.statistics(date_initial=month_list[-2],
                                    date_final=month_list[-1])
-
-
-
-
-
-
 
 
 

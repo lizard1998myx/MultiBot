@@ -48,7 +48,7 @@ class WCScheduleSession(Session):
     def __init__(self, user_id):
         Session.__init__(self, user_id=user_id)
         self.session_type = 'WC定时任务'
-        self.description = '在测试，群报时，发送问好和天气预报'
+        self.description = '已停用，群报时，发送问好和天气预报'
 
     def probability_to_call(self, request):
         if self.is_legal_request(request=request):
@@ -64,9 +64,6 @@ class WCScheduleSession(Session):
         response_list = []
         now = datetime.datetime.now()
         if now.minute == 0:  # 整点
-            # if now.hour == 22:
-            #     response_list.append(ResponseGrpImg(group_id='20201501班级群',  # '国科大天文学院2020级学生群'
-            #                                         file=next_day_general().file))
             if now.hour % 3 == 0:
                 time_info = ResponseGrpMsg(group_id='Testing', text='【报时】现在%i点了' % now.hour)
                 time_info.at_list.append('Bot.Lizard')

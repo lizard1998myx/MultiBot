@@ -1,7 +1,7 @@
 from ..responses import ResponseMsg
 from .argument import ArgSession, Argument
 from ..paths import PATHS
-import pandas as pd
+from ..external.record_table import RecordTable, RecordNotFoundError
 import os, datetime
 
 # 2021-12-11: 完成代码并进行调试
@@ -12,83 +12,14 @@ SUBS_LIST = os.path.join(PATHS['data'], 'qq_subscription_list.xlsx')
 
 # 给scheduler调用，用于查找订阅列表
 def get_qq_subscriptions(request, now=None):
-    # 如果订阅列表不存在
-    if not os.path.exists(SUBS_LIST):
-        return []
-
-    df = pd.read_excel(SUBS_LIST)
-    request_list = []
-    expire_list = []
-    if now is None:
-        now = datetime.datetime.now()
-
-    for i in df.to_dict('records'):
-        if int(i['hour']) == now.hour and int(i['minute'] == now.minute):
-            new_r = request.new(msg=i['message'])
-            new_r.user_id = str(i['user_id'])
-            request_list.append(new_r)
-            if i['temp'] == 1:  # 临时项目
-                expire_list.append(i)
-
-    # 去除过期项目（temp项）
-    if len(expire_list) > 0:
-        dfl = df.to_dict('records')
-        new_dfl = []
-        for i in dfl:
-            if i not in expire_list:
-                new_dfl.append(i)
-        pd.DataFrame(new_dfl).to_excel(SUBS_LIST, index=False)
-
-    return request_list
+    return SubscriptionRecords().get_subscriptions(request=request, now=now)
 
 
 # 添加新的订阅，用于AddSubscription插件和其他
-# 如果用类封装会更好
 def add_qq_subscription(hour, msg, user_id, minute=0, dhour=0, temp=False, no_repeat=False, get_brief=False):
-    # 整理、检测合法性
-    minute = float(minute) + float(hour) * 60  # 全部加到分钟上
-    minute = int(minute)  # 向下取整
-    hour = minute // 60
-    minute %= 60
-    hour %= 24
-    dhour = int(dhour)
-    user_id = str(user_id)
-
-    if temp:
-        temp_flag = 1
-    else:
-        temp_flag = 0
-
-    # 读取原数据
-    if os.path.exists(SUBS_LIST):
-        df = pd.read_excel(SUBS_LIST)
-        df['user_id'] = df['user_id'].astype(str)
-        dfl = df.to_dict('records')
-    else:
-        # 新建表格
-        dfl = []
-
-    def append_record(d, dfl=dfl, no_repeat=no_repeat):
-        if no_repeat:
-            if d not in dfl:
-                dfl.append(d)
-        else:
-            dfl.append(d)
-
-    if dhour > 0:  # 重复，往后
-        for h in range(hour, 24, dhour):
-            append_record({'hour': h, 'minute': minute, 'user_id': user_id, 'temp': temp_flag, 'message': msg})
-    elif dhour < 0:  # 重复，往回
-        for h in range(hour, -1, dhour):
-            append_record({'hour': h, 'minute': minute, 'user_id': user_id, 'temp': temp_flag, 'message': msg})
-    else:  # 不重复
-        append_record({'hour': hour, 'minute': minute, 'user_id': user_id, 'temp': temp_flag, 'message': msg})
-
-    # 保存数据
-    pd.DataFrame(dfl).to_excel(SUBS_LIST, index=False)
-
-    if get_brief:
-        return f'{hour:02d}:{minute:02d} - {user_id}\n{msg}'
+    return SubscriptionRecords().append(hour=hour, msg=msg, user_id=user_id,
+                                        minute=minute, dhour=dhour, temp=temp,
+                                        no_repeat=no_repeat, get_brief=get_brief)
 
 
 class AddQQSubscriptionSession(ArgSession):
@@ -175,8 +106,7 @@ class DelQQSubscriptionSession(ArgSession):
         self.default_arg = None  # 没有缺省argument
         self.detail_description = '寻找并删除订阅条目，默认使用发送人的id'
         self.this_first_time = True
-        self._indexes = []
-        self._records = []
+        self.record_table = None
 
     def prior_handle_test(self, request):
         if request.platform != 'CQ':
@@ -185,51 +115,113 @@ class DelQQSubscriptionSession(ArgSession):
     def internal_handle(self, request):
         if self.this_first_time:
             self.this_first_time = False
-            if not os.path.exists(SUBS_LIST):
+            self.record_table = SubscriptionRecords()
+            record_list = self.record_table.find_all(user_id=self.arg_dict['user_id'].value)
+            msg = self.record_table.list_records(record_list=record_list)
+
+            if len(record_list) == 0:
                 self.deactivate()
-                return ResponseMsg(f'【{self.session_type}】没有订阅记录')
+                return ResponseMsg(f'【{self.session_type}】未找到条目')
+            elif self.arg_dict['list'].called:
+                self.deactivate()
+                return ResponseMsg(f'【{self.session_type} - 仅查看】找到以下条目：\n{msg}')
             else:
-                dfl = pd.read_excel(SUBS_LIST).to_dict('records')
-                msg = ''
-                n = 0
-                uid = self.arg_dict['user_id'].value  # 已经设置default
-                for i, d in enumerate(dfl):
-                    if str(d['user_id']) == uid:
-                        n += 1
-                        self._indexes.append(i)
-                        self._records.append(d)
-                        msg += f'{n}. ({d["hour"]:02d}:{d["minute"]:02d}'
-                        if d['temp']:
-                            msg += '|temp'
-                        msg += f') {d["message"]}\n'
-                if len(self._indexes) == 0:
-                    self.deactivate()
-                    return ResponseMsg(f'【{self.session_type}】未找到有关条目')
-                elif self.arg_dict['list'].called:
-                    self.deactivate()
-                    return ResponseMsg(f'【{self.session_type} - 仅查看】找到以下条目：\n{msg}')
-                else:
-                    return ResponseMsg(f'【{self.session_type}】找到以下条目：\n{msg}'
-                                       f'请回复需要删除条目的序号（正整数），回复其他内容以取消')
+                return ResponseMsg(f'【{self.session_type} - 删除】找到以下条目：\n{msg}\n'
+                                   f'请回复需要删除条目的序号（正整数），回复其他内容以取消')
         else:  # 删除条目
             try:
-                i_del = int(request.msg) - 1
+                d_del = self.record_table.pop_by_index(index=request.msg)
             except ValueError:
                 self.deactivate()
-                return ResponseMsg(f'【{self.session_type}】未找到序号，退出')
-            if i_del < 0 or i_del >= len(self._indexes):
+                return ResponseMsg(f'【{self.session_type}】退出')
+            except RecordNotFoundError:
+                self.deactivate()
+                return ResponseMsg(f'【{self.session_type}】未找到相符记录，退出')
+            except IndexError:
                 self.deactivate()
                 return ResponseMsg(f'【{self.session_type}】序号超出范围，退出')
-            # 读取数据
-            dfl = pd.read_excel(SUBS_LIST).to_dict('records')
-            i_start = min(len(dfl)-1, self._indexes[i_del])  # 从右边向左找
-            for i in range(i_start, -1, -1):  # 回溯
-                d = dfl[i]
-                if d == self._records[i_del]:  # record matched
-                    dfl = dfl[:i] + dfl[i+1:]
-                    pd.DataFrame(dfl).to_excel(SUBS_LIST, index=False)
-                    return ResponseMsg(f'【{self.session_type}】已删除条目{i_del + 1}:\n'
-                                       f'({d["hour"]:02d}:{d["minute"]:02d}) {d["message"]}\n'
-                                       f'请回复需继续删除的条目序号')
-            self.deactivate()
-            return ResponseMsg(f'【{self.session_type}】未找到符合条件的订阅条目，退出')
+            else:
+                return ResponseMsg(f'【{self.session_type}】已删除条目:\n'
+                                   f'({d_del["hour"]:02d}:{d_del["minute"]:02d}) {d_del["message"]}\n'
+                                   f'请回复需继续删除的条目序号')
+
+
+class SubscriptionRecords(RecordTable):
+    def __init__(self):
+        RecordTable.__init__(self, table_file=SUBS_LIST, string_cols=['user_id'])
+
+    @staticmethod
+    def list_single_record(record) -> str:
+        msg = ''
+        msg += f'({record["hour"]:02d}:{record["minute"]:02d}'
+        if record['temp']:
+            msg += ' | temp'
+        msg += f') {record["message"]}'
+        return msg
+
+    def _append_no_repeat(self, record_list):
+        for i in record_list:
+            if i not in self.get_dfl():  # 每次都要检查
+                self.append_full(i)
+
+    def append(self, hour, msg, user_id, minute=0, dhour=0, temp=False, no_repeat=False, get_brief=False):
+        # 整理、检测合法性
+        minute = float(minute) + float(hour) * 60  # 全部加到分钟上
+        minute = int(minute)  # 向下取整
+        hour = minute // 60
+        minute %= 60
+        hour %= 24
+        dhour = int(dhour)
+        user_id = str(user_id)
+
+        if temp:
+            temp_flag = 1
+        else:
+            temp_flag = 0
+
+        new_records = []
+
+        if dhour > 0:  # 重复，往后
+            for h in range(hour, 24, dhour):
+                new_records.append({'hour': h, 'minute': minute, 'user_id': user_id, 'temp': temp_flag, 'message': msg})
+        elif dhour < 0:  # 重复，往回
+            for h in range(hour, -1, dhour):
+                new_records.append({'hour': h, 'minute': minute, 'user_id': user_id, 'temp': temp_flag, 'message': msg})
+        else:  # 不重复
+            new_records.append({'hour': hour, 'minute': minute, 'user_id': user_id, 'temp': temp_flag, 'message': msg})
+
+        if no_repeat:
+            self._append_no_repeat(record_list=new_records)
+        else:
+            for i in new_records:
+                self.append_full(item=i)
+
+        if get_brief:
+            return f'{hour:02d}:{minute:02d} - {user_id}\n{msg}'
+
+    def get_subscriptions(self, request, now=None):
+        # 如果订阅列表不存在
+        if not self.is_exist():
+            return []
+
+        request_list = []  # 转化成的request
+        expire_list = []  # 过期的临时项目
+        if now is None:
+            now = datetime.datetime.now()
+
+        for i in self.get_dfl():
+            if int(i['hour']) == now.hour and int(i['minute'] == now.minute):
+                new_r = request.new(msg=i['message'])
+                new_r.user_id = str(i['user_id'])
+                request_list.append(new_r)
+                if i['temp'] == 1:  # 临时项目
+                    expire_list.append(i)
+
+        # 去除过期项目（temp项）
+        for i in expire_list:
+            try:
+                self.delete(record=i, from_new=False)
+            except RecordNotFoundError:
+                pass
+
+        return request_list

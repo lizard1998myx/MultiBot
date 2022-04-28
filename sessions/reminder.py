@@ -2,6 +2,7 @@ from .argument import ArgSession
 from .subscription import add_qq_subscription
 from ..responses import ResponseMsg
 from ..paths import PATHS
+from ..external.record_table import RecordTable, RecordNotFoundError
 import pandas as pd
 import datetime, os
 
@@ -10,7 +11,7 @@ REMINDER_TABLE_FILE = os.path.join(PATHS['data'], 'reminder_tables.xlsx')
 
 # 给schedule调用，建议凌晨启用，否则会有延迟
 def check_reminders():
-    record_expired = ReminderTable().get_expired(user_id=None)
+    record_expired = ReminderTable().find_expired(user_id=None)
     for d in record_expired:
         add_qq_subscription(hour=d['inform_h'], temp=True, no_repeat=True,
                             user_id=d['user_id'], msg=f'echo {d["inform_msg"]}')
@@ -94,7 +95,7 @@ class DelReminderSession(ArgSession):
                      required=False, get_next=False,
                      help_text='仅查看提醒列表，不删除')
         self.this_first_time = True
-        self.reminders = None
+        self.reminder_table = None
 
     def prior_handle_test(self, request):
         if request.platform != 'CQ':
@@ -103,16 +104,11 @@ class DelReminderSession(ArgSession):
     def internal_handle(self, request):
         if self.this_first_time:
             self.this_first_time = False
-            self.reminders = ReminderTable().get_all(user_id=self.arg_dict['user_id'].value)
+            self.reminder_table = ReminderTable()
+            record_list = self.reminder_table.find_all(user_id=self.arg_dict['user_id'].value)
+            msg = self.reminder_table.list_records(record_list=record_list)
 
-            msg = f''
-            for i, d in enumerate(self.reminders):
-                msg += f'{i+1}. {d["event"]} \n' \
-                       f'    每{d["max_delta"]}天{int(d["inform_h"]):02d}时提醒\n' \
-                       f'    上次执行于 {d["date"]}\n'
-            msg = msg[:-1]
-
-            if len(self.reminders) == 0:
+            if len(record_list) == 0:
                 self.deactivate()
                 return ResponseMsg(f'【{self.session_type}】未找到条目')
             elif self.arg_dict['list'].called:
@@ -123,22 +119,19 @@ class DelReminderSession(ArgSession):
                                    f'请回复需要删除条目的序号（正整数），回复其他内容以取消')
         else:
             try:
-                i_del = int(request.msg) - 1
+                d_del = self.reminder_table.pop_by_index(index=request.msg)
             except ValueError:
                 self.deactivate()
-                return ResponseMsg(f'【{self.session_type}】未找到序号，退出')
-            if i_del < 0 or i_del >= len(self.reminders):
+                return ResponseMsg(f'【{self.session_type}】退出')
+            except RecordNotFoundError:
+                self.deactivate()
+                return ResponseMsg(f'【{self.session_type}】未找到相符记录，退出')
+            except IndexError:
                 self.deactivate()
                 return ResponseMsg(f'【{self.session_type}】序号超出范围，退出')
-            d_del = self.reminders[i_del]
-            try:
-                ReminderTable().delete_record(d_delete=d_del)
-            except ValueError:
-                self.deactivate()
-                return ResponseMsg(f'【{self.session_type}】未找到，退出')
             else:
                 return ResponseMsg(f'【{self.session_type}】已删除：\n'
-                                   f'每{d_del["max_delta"]}天提醒的事件{d_del["event"]}\n'
+                                   f'每{d_del["max_delta"]}天提醒的事件[{d_del["event"]}]\n'
                                    f'请回复需继续删除的条目序号')
 
 
@@ -161,8 +154,8 @@ class UpdateReminderSession(ArgSession):
         self.add_arg(key='delta', alias_list=['-d'],
                      required=False, get_next=True,
                      default_value=0,
-                     help_text='将最后执行时间更新到距离今天n天的时间')
-        self.default_arg = self.arg_list[1]  # event
+                     help_text='将最后执行时间更新到距离今天n天的时间（未来为正）')
+        self.default_arg = [self.arg_list[1], self.arg_list[2]]  # event, delta
         self.detail_description = '例如，完成了任务后，发送“更新提醒 浇水”，' \
                                   '将最近浇水时间更新到当天。'
 
@@ -203,56 +196,37 @@ class CheckReminderSession(ArgSession):
         return ResponseMsg(f'【{self.session_type}】done')
 
 
-class ReminderTable:
+class ReminderTable(RecordTable):
     def __init__(self):
-        self.table_file = REMINDER_TABLE_FILE
+        RecordTable.__init__(self, table_file=REMINDER_TABLE_FILE,
+                             string_cols=['user_id'])
 
     def append(self, user_id,
                event='event', inform_msg=None,
                inform_h=12, max_delta=1):
-        append_date = datetime.date.today().isoformat()
-
         assert isinstance(max_delta, int)
 
         if inform_msg is None:
             inform_msg = f'inform of event [{event}]'
 
-        # 读取原数据
-        if os.path.exists(self.table_file):
-            dfl = pd.read_excel(self.table_file).to_dict('records')
-        else:
-            # 新建表格
-            dfl = []
+        item = {'date': datetime.date.today().isoformat(),
+                'user_id': user_id,
+                'event': event,
+                'inform_msg': inform_msg,
+                'inform_h': inform_h,
+                'max_delta': max_delta}
 
-        dfl.append({'date': append_date, 'user_id': user_id,
-                    'event': event,
-                    'inform_msg': inform_msg,
-                    'inform_h': inform_h,
-                    'max_delta': max_delta})
-
-        # 保存数据
-        pd.DataFrame(dfl).to_excel(self.table_file, index=False)
+        self.append_full(item=item)
 
     def find_event(self, user_id, event):
-        records_all = self.get_all(user_id=user_id)
+        records_all = self.find_all(user_id=user_id)
         for d in records_all:
             if str(d['event']) == str(event):
                 return d
         return None
 
-    def get_all(self, user_id=None) -> list:
-        records = []
-        if os.path.exists(self.table_file):
-            dfl = pd.read_excel(self.table_file).to_dict('records')
-            if user_id is None:
-                return dfl  # 未指定用户时，返回全部
-            for d in dfl:
-                if str(d['user_id']) == str(user_id):
-                    records.append(d)
-        return records
-
-    def get_expired(self, user_id=None) -> list:
-        records_all = self.get_all(user_id=user_id)
+    def find_expired(self, user_id=None) -> list:
+        records_all = self.find_all(user_id=user_id)
         records_expired = []
         for d in records_all:
             delta_days = datetime.date.today() - datetime.date.fromisoformat(d['date'])
@@ -266,30 +240,24 @@ class ReminderTable:
                     records_expired.append(d)
         return records_expired
 
-    # 删除一条记录
-    def delete_record(self, d_delete):
-        if os.path.exists(self.table_file):
-            dfl = pd.read_excel(self.table_file).to_dict('records')
-            for i, d in enumerate(dfl):
-                if d == d_delete:
-                    dfl = dfl[:i] + dfl[i+1:]
-                    pd.DataFrame(dfl).to_excel(self.table_file, index=False)
-                    return
-            raise ValueError('未找到条目')
-        raise FileNotFoundError('未找到表格')
-
     # 更新记录的日期（默认为今天，可向前或向后改）
-    def update_record(self, d_update, days_delta=0):
-        if os.path.exists(self.table_file):
-            dfl = pd.read_excel(self.table_file).to_dict('records')
-            for i, d in enumerate(dfl):
-                if d == d_update:
-                    today = datetime.date.today()
-                    delta = datetime.timedelta(days=days_delta)
-                    d['date'] = (today + delta).isoformat()
-                    dfl = dfl[:i] + [d] + dfl[i+1:]
-                    pd.DataFrame(dfl).to_excel(self.table_file, index=False)
-                    return d
-            raise ValueError('未找到条目')
-        raise FileNotFoundError('未找到表格')
+    def update_record(self, d_update: dict, days_delta=0):
+        record_old = d_update
+        record_new = d_update.copy()
+        today = datetime.date.today()
+        delta = datetime.timedelta(days=days_delta)
+        record_new['date'] = (today + delta).isoformat()
+
+        self.replace(record_old=record_old, record_new=record_new)
+        return record_new
+
+    @staticmethod
+    def list_single_record(record) -> str:
+        days_passed = datetime.date.today() - datetime.date.fromisoformat(record['date'])
+        days_left = max(record["max_delta"] - days_passed.days, 0)
+
+        return f'{record["event"]} \n' \
+               f'    每{record["max_delta"]}天{int(record["inform_h"]):02d}时提醒\n' \
+               f'    上次执行于 {record["date"]}，距下次{days_left}天'
+
 

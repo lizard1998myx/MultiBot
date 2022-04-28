@@ -109,6 +109,22 @@ class ArgSession(Session):
         self.deactivate()
         return ResponseMsg(f'【{self.session_type}】任务中止。')
 
+    # 检查同义词是否冲突
+    def _no_argument_conflicts(self):
+        commands = []
+        for arg in self.arg_list:
+            i0 = f'--{arg.key}'
+            if i0 in commands:
+                return False
+            else:
+                commands.append(i0)
+            for i in arg.alias_list:
+                if i in commands:
+                    return False
+                else:
+                    commands.append(i)
+        return True
+
     def handle(self, request):
         fill_first_arg = True
         # 只在第一次分析argument
@@ -117,6 +133,9 @@ class ArgSession(Session):
             fill_first_arg = False
 
             # 初始化arg dict
+            if not self._no_argument_conflicts():  # 检查同义词冲突
+                self.deactivate()
+                return ResponseMsg(f'【{self.session_type}】同义词冲突，代码有bug。')
             for arg in self.arg_list:
                 self.arg_dict[arg.key] = arg
             if request.msg is None:
