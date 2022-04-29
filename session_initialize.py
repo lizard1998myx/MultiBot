@@ -25,7 +25,7 @@ from .sessions.covid_regions import CovidRiskSession, CovidRiskUpdateSession
 from .sessions.subnaoc import SubNaocSession
 from .sessions.user_note_search import UserNoteSession
 from .sessions.wake_on_lan import WolSession
-from .sessions.subscription import AddQQSubscriptionSession, DelQQSubscriptionSession
+from .sessions.subscription import AddQQSubscriptionSession, DelQQSubscriptionSession, ListQQSubscriptionSession
 from .sessions.popular import NbnhhshSession, BookOfAnswersSession, WebImgSession, \
                               FocusCubeSession, AsoulCnkiSession, UpSideDownTextSession, SlscqSession
 from .sessions.perms_add import AddPermissionSession, DelPermissionSession
@@ -36,7 +36,8 @@ from .sessions.system_command import SystemCmdSession
 from .sessions.covid_data import CovidDataSession, CovidDataUpdateSession
 from .sessions.email_cas_trash import EmailCasTrashSession
 from .sessions.account_book import AccountUpdateSession, AccountViewSession, AccountDelSession
-from .sessions.reminder import AddReminderSession, DelReminderSession, UpdateReminderSession, CheckReminderSession
+from .sessions.reminder import AddReminderSession, DelReminderSession, ListReminderSession, \
+                               UpdateReminderSession, CheckReminderSession
 from .paths import PATHS
 import os
 
@@ -55,9 +56,10 @@ NEW_SESSIONS = [IntroSession, DescriptionSession, VersionSession, HelpSession, E
                 CovidRiskSession, CovidRiskUpdateSession, CovidDataSession, CovidDataUpdateSession,
                 ArxivSession, AstroPlotSession, CosmoPlotSession, AutoBaiduSession, MusicSession,
                 AutoAnswerSession, AddAnswerSession, AutoAliasSession, AddAliasSession,
-                AddQQSubscriptionSession, DelQQSubscriptionSession,
+                AddQQSubscriptionSession, DelQQSubscriptionSession, ListQQSubscriptionSession,
                 AccountUpdateSession, AccountViewSession, AccountDelSession,
-                AddReminderSession, DelReminderSession, UpdateReminderSession, CheckReminderSession,
+                AddReminderSession, DelReminderSession, ListReminderSession,
+                UpdateReminderSession, CheckReminderSession,
                 AddPermissionSession, DelPermissionSession, Ipv6AddrSession, SystemCmdSession,
                 CQCommandSession, CQRebootSession, CQGroupSuicideSession, CQGroupRandomSession]
 
