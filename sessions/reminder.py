@@ -83,7 +83,6 @@ class DelReminderSession(ArgSession):
     def __init__(self, user_id):
         ArgSession.__init__(self, user_id=user_id)
         self.session_type = '删除提醒'
-        self.description = '任务提醒模块的删除和检查功能'
         self._max_delta = 60
         self.strict_commands = ['删除提醒', 'DelRem']
         self.add_arg(key='user_id', alias_list=['-uid'],
@@ -91,9 +90,6 @@ class DelReminderSession(ArgSession):
                      default_value=user_id,
                      help_text='接收提醒的用户ID（QQ号）',
                      ask_text='请输入接收提醒用户的ID（QQ号）')
-        self.add_arg(key='list', alias_list=['-l'],
-                     required=False, get_next=False,
-                     help_text='仅查看提醒列表，不删除')
         self.this_first_time = True
         self.reminder_table = None
 
@@ -106,16 +102,13 @@ class DelReminderSession(ArgSession):
             self.this_first_time = False
             self.reminder_table = ReminderTable()
             record_list = self.reminder_table.find_all(user_id=self.arg_dict['user_id'].value)
-            msg = self.reminder_table.list_records(record_list=record_list)
 
             if len(record_list) == 0:
                 self.deactivate()
                 return ResponseMsg(f'【{self.session_type}】未找到条目')
-            elif self.arg_dict['list'].called:
-                self.deactivate()
-                return ResponseMsg(f'【{self.session_type} - 仅查看】找到以下条目：\n{msg}')
             else:
-                return ResponseMsg(f'【{self.session_type} - 删除】找到以下条目：\n{msg}\n'
+                return ResponseMsg(f'【{self.session_type}】找到以下条目：\n'
+                                   f'{self.reminder_table.list_records(record_list=record_list)}\n'
                                    f'请回复需要删除条目的序号（正整数），回复其他内容以取消')
         else:
             try:
@@ -133,6 +126,35 @@ class DelReminderSession(ArgSession):
                 return ResponseMsg(f'【{self.session_type}】已删除：\n'
                                    f'每{d_del["max_delta"]}天提醒的事件[{d_del["event"]}]\n'
                                    f'请回复需继续删除的条目序号')
+
+
+class ListReminderSession(ArgSession):
+    def __init__(self, user_id):
+        ArgSession.__init__(self, user_id=user_id)
+        self.session_type = '查看提醒'
+        self._max_delta = 60
+        self.strict_commands = ['查看提醒', 'LsRem', 'ViewRem']
+        self.add_arg(key='user_id', alias_list=['-uid'],
+                     required=False, get_next=True,
+                     default_value=user_id,
+                     help_text='接收提醒的用户ID（QQ号）',
+                     ask_text='请输入接收提醒用户的ID（QQ号）')
+        self.reminder_table = None
+
+    def prior_handle_test(self, request):
+        if request.platform != 'CQ':
+            self.arg_dict['user_id'].required = True  # 其他平台变更订阅属性
+
+    def internal_handle(self, request):
+        self.deactivate()
+        self.reminder_table = ReminderTable()
+        record_list = self.reminder_table.find_all(user_id=self.arg_dict['user_id'].value)
+
+        if len(record_list) == 0:
+            return ResponseMsg(f'【{self.session_type}】未找到条目')
+        else:
+            return ResponseMsg(f'【{self.session_type}】找到以下条目：\n'
+                               f'{self.reminder_table.list_records(record_list=record_list)}')
 
 
 class UpdateReminderSession(ArgSession):

@@ -1,5 +1,5 @@
 from ..responses import ResponseMsg
-from .argument import ArgSession, Argument
+from .argument import ArgSession
 from ..paths import PATHS
 from ..external.record_table import RecordTable, RecordNotFoundError
 import os, datetime
@@ -96,13 +96,10 @@ class DelQQSubscriptionSession(ArgSession):
         self.session_type = '删除QQ订阅条目'
         self._max_delta = 60
         self.strict_commands = ['删除订阅', '取消订阅', 'unsubscribe']
-        self.arg_list = [Argument(key='user_id', alias_list=['-uid'],
-                                  required=False, get_next=True,
-                                  default_value=user_id,
-                                  help_text='对应的用户ID（QQ号）'),
-                         Argument(key='list', alias_list=['-l'],
-                                  required=False, get_next=False,
-                                  help_text='仅查看订阅列表，不删除')]
+        self.add_arg(key='user_id', alias_list=['-uid'],
+                     required=False, get_next=True,
+                     default_value=user_id,
+                     help_text='对应的用户ID（QQ号）')
         self.default_arg = None  # 没有缺省argument
         self.detail_description = '寻找并删除订阅条目，默认使用发送人的id'
         self.this_first_time = True
@@ -117,16 +114,13 @@ class DelQQSubscriptionSession(ArgSession):
             self.this_first_time = False
             self.record_table = SubscriptionRecords()
             record_list = self.record_table.find_all(user_id=self.arg_dict['user_id'].value)
-            msg = self.record_table.list_records(record_list=record_list)
 
             if len(record_list) == 0:
                 self.deactivate()
                 return ResponseMsg(f'【{self.session_type}】未找到条目')
-            elif self.arg_dict['list'].called:
-                self.deactivate()
-                return ResponseMsg(f'【{self.session_type} - 仅查看】找到以下条目：\n{msg}')
             else:
-                return ResponseMsg(f'【{self.session_type} - 删除】找到以下条目：\n{msg}\n'
+                return ResponseMsg(f'【{self.session_type} - 删除】找到以下条目：\n'
+                                   f'{self.record_table.list_records(record_list=record_list)}\n'
                                    f'请回复需要删除条目的序号（正整数），回复其他内容以取消')
         else:  # 删除条目
             try:
@@ -144,6 +138,36 @@ class DelQQSubscriptionSession(ArgSession):
                 return ResponseMsg(f'【{self.session_type}】已删除条目:\n'
                                    f'({d_del["hour"]:02d}:{d_del["minute"]:02d}) {d_del["message"]}\n'
                                    f'请回复需继续删除的条目序号')
+
+
+class ListQQSubscriptionSession(ArgSession):
+    def __init__(self, user_id):
+        ArgSession.__init__(self, user_id=user_id)
+        self.session_type = '查看QQ订阅条目'
+        self._max_delta = 60
+        self.strict_commands = ['查看订阅', '订阅列表']
+        self.add_arg(key='user_id', alias_list=['-uid'],
+                     required=False, get_next=True,
+                     default_value=user_id,
+                     help_text='对应的用户ID（QQ号）')
+        self.default_arg = None  # 没有缺省argument
+        self.detail_description = '寻找并删除订阅条目，默认使用发送人的id'
+        self.record_table = None
+
+    def prior_handle_test(self, request):
+        if request.platform != 'CQ':
+            self.arg_dict['user_id'].required = True  # 其他平台变更订阅属性
+
+    def internal_handle(self, request):
+        self.deactivate()
+        self.record_table = SubscriptionRecords()
+        record_list = self.record_table.find_all(user_id=self.arg_dict['user_id'].value)
+
+        if len(record_list) == 0:
+            return ResponseMsg(f'【{self.session_type}】未找到条目')
+        else:
+            return ResponseMsg(f'【{self.session_type}】找到以下条目：\n'
+                               f'{self.record_table.list_records(record_list=record_list)}')
 
 
 class SubscriptionRecords(RecordTable):

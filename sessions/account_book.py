@@ -7,7 +7,6 @@ from ..external.record_table import RecordTable, RecordNotFoundError
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib as mpl
 import datetime, os
 
 ACCOUNT_DIR = os.path.join(PATHS['data'], 'accounts')
@@ -256,11 +255,16 @@ class AccountBook(RecordTable):
 
         # plot
         img_file = image_filename(header='AccountBook', abs_path=True)
-        mpl.rc("font", family='SimHei')
+        # Chinese character
+        plt.rcParams['font.family'] = 'sans-serif'
+        plt.rcParams['font.sans-serif'] = 'Microsoft Yahei'
         fig, ax = plt.subplots()
         ax.pie(group['amount'], labels=group.index, autopct='%3.1f%%')
         fig.tight_layout()
         fig.savefig(img_file)
+        # reverse
+        plt.rcParams['font.family'] = plt.rcParamsDefault['font.family']
+        plt.rcParams['font.sans-serif'] = plt.rcParamsDefault['font.sans-serif']
 
         return {'msg': f'分类统计:\n{group.amount}\n总计:{total}',
                 'img': img_file,
