@@ -140,7 +140,8 @@ class AccountViewSession(ArgSession):
         return [ResponseMsg(f'【{self.session_type}】统计时间：\n'
                             f'{statistics["date_range"]}'),
                 ResponseMsg(statistics['msg']),
-                ResponseImg(statistics['img'])]
+                ResponseImg(statistics['img_pie']),
+                ResponseImg(statistics['img_curve'])]
 
 
 class AccountDelSession(ArgSession):
@@ -253,21 +254,50 @@ class AccountBook(RecordTable):
         group = new_df.groupby('category').sum()
         total = np.sum(new_df['amount'])
 
-        # plot
-        img_file = image_filename(header='AccountBook', abs_path=True)
         # Chinese character
         plt.rcParams['font.family'] = 'sans-serif'
         plt.rcParams['font.sans-serif'] = 'Microsoft Yahei'
+
+        # plotA
+        img_pie = image_filename(header='AccountBookPie', abs_path=True)
         fig, ax = plt.subplots()
         ax.pie(group['amount'], labels=group.index, autopct='%3.1f%%')
         fig.tight_layout()
-        fig.savefig(img_file)
+        fig.savefig(img_pie)
+
+        # plotB
+        img_curve = image_filename(header='AccountBookCurve', abs_path=True)
+        n_days = (date_final - date_initial).days
+        xx = np.arange(n_days)
+        # 标记三次
+        delta_ticklabels = n_days//3
+        xticklabels = [''] * n_days
+        for j in range(0, n_days, delta_ticklabels):
+            xticklabels[j] = (date_initial + datetime.timedelta(days=j)).isoformat()[-5:]
+        # separate
+        category_expenses = {'total': np.zeros(shape=n_days)}
+        for i in new_df.to_dict('records'):
+            cat = i['category']
+            if cat not in category_expenses.keys():
+                category_expenses[cat] = np.zeros(shape=n_days)
+            category_expenses['total'][(i['date_obj'] - date_initial).days] += i['amount']
+            category_expenses[cat][(i['date_obj'] - date_initial).days] += i['amount']
+        # plots
+        fig, ax = plt.subplots()
+        for cat, y in category_expenses.items():
+            ax.plot(xx, y, label=cat)
+        ax.legend()
+        ax.set(xticks=xx, xticklabels=xticklabels)
+        fig.tight_layout()
+        fig.savefig(img_curve)
+
         # reverse
         plt.rcParams['font.family'] = plt.rcParamsDefault['font.family']
         plt.rcParams['font.sans-serif'] = plt.rcParamsDefault['font.sans-serif']
 
         return {'msg': f'分类统计:\n{group.amount}\n总计:{total}',
-                'img': img_file,
+                'img_pie': img_pie,
+                'img_curve': img_curve,
                 'date_range': f'{date_initial.isoformat()} - '
                               f'{(date_final - datetime.timedelta(days=1)).isoformat()}'}
 
