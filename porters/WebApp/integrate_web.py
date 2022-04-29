@@ -6,7 +6,7 @@ import os, datetime, sys
 
 if sys.platform == 'win32':
     import win32api, win32print
-    DEBUG = True
+    DEBUG = False  # disabled for security reasons
 else:
     DEBUG = False  # disable debug in linux etc
 
