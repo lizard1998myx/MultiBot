@@ -22,7 +22,7 @@ class RecordTable:
         if os.path.exists(self.table_file):
             df = pd.read_excel(self.table_file)
             for col in self._string_cols:
-                df[col].astype(str)
+                df[col] = df[col].astype(str)
             return df.to_dict('records')
         else:
             # 新建表格
@@ -35,6 +35,8 @@ class RecordTable:
         if not self.is_exist():
             return []
         df = pd.read_excel(self.table_file)
+        for col in self._string_cols:
+            df[col] = df[col].astype(str)
         for k, v in kwargs.items():
             if v is not None:
                 df = df[df[k].astype(str) == str(v)]  # filter
@@ -69,7 +71,7 @@ class RecordTable:
                 return
         raise RecordNotFoundError
 
-    @ staticmethod
+    @staticmethod
     def list_single_record(record) -> str:
         return str(record)
 
