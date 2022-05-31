@@ -38,6 +38,7 @@ from .sessions.email_cas_trash import EmailCasTrashSession
 from .sessions.account_book import AccountUpdateSession, AccountViewSession, AccountDelSession
 from .sessions.reminder import AddReminderSession, DelReminderSession, ListReminderSession, \
                                UpdateReminderSession, CheckReminderSession
+from .sessions.log_debug import LogSession
 from .paths import PATHS
 import os
 
@@ -66,9 +67,12 @@ NEW_SESSIONS = [IntroSession, DescriptionSession, VersionSession, HelpSession, E
 # 定时任务中启用的sessions
 NEW_SESSIONS_CRON = [QQScheduleSession, WCScheduleSession]
 
+# LogSession
+LOG_SESSION = LogSession
+
 # 初始化帮助文档并保存
 help_text = ''
-for session_class in NEW_SESSIONS + NEW_SESSIONS_CRON:
+for session_class in NEW_SESSIONS + [LOG_SESSION] + NEW_SESSIONS_CRON:
     help_text += session_class('').brief_help()
     help_text += '\n'
 
