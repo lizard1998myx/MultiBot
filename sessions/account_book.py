@@ -94,7 +94,7 @@ class AccountViewSession(ArgSession):
         self._max_delta = 60
         commands = []
         for a in ['查看', '统计']:
-            for b in ['账本', '账单']:
+            for b in ['账本', '账单', '记账']:
                 commands.append(a+b)
                 commands.append(b+a)
         self.strict_commands = commands
@@ -111,6 +111,10 @@ class AccountViewSession(ArgSession):
         self.add_arg(key='n-months', alias_list=['-nm', '-m'],
                      required=False, get_next=True,
                      help_text='获取前n个月的记账信息（默认不启用）')
+        self.add_arg(key='category', alias_list=['-c'],
+                     required=False, get_next=True,
+                     default_value=None,
+                     help_text='指定一个类别的内容')
 
     def prior_handle_test(self, request):
         if request.platform != 'CQ':
@@ -119,6 +123,7 @@ class AccountViewSession(ArgSession):
     def internal_handle(self, request):
         self.deactivate()
         book = AccountBook(book_name=self.arg_dict['book'].value)
+        cat = self.arg_dict['category'].value
         if not book.is_exist():
             return ResponseMsg(f'【{self.session_type}】账本不存在。')
 
@@ -128,14 +133,14 @@ class AccountViewSession(ArgSession):
             except ValueError:
                 return ResponseMsg(f'【{self.session_type}】输入数字有误。')
             else:
-                statistics = book.statistics_month(months_back=n)
+                statistics = book.statistics_month(months_back=n, category=cat)
         else:
             try:
                 n = int(self.arg_dict['n-days'].value)
             except ValueError:
                 return ResponseMsg(f'【{self.session_type}】输入数字有误。')
             else:
-                statistics = book.statistics_recent(days_back=n)
+                statistics = book.statistics_recent(days_back=n, category=cat)
 
         return [ResponseMsg(f'【{self.session_type}】统计时间：\n'
                             f'{statistics["date_range"]}'),
@@ -218,7 +223,9 @@ class AccountDelSession(ArgSession):
 
 class AccountBook(RecordTable):
     def __init__(self, book_name):
-        RecordTable.__init__(self, table_file=os.path.join(ACCOUNT_DIR, f'{book_name}.xlsx'))
+        RecordTable.__init__(self,
+                             table_file=os.path.join(ACCOUNT_DIR, f'{book_name}.xlsx'),
+                             string_cols=['user_id'])
 
     def append(self, platform, user_id,
                user_tag='nobody', category='expense',
@@ -237,22 +244,17 @@ class AccountBook(RecordTable):
                f"{record['category']}/{record['content']}/{record['place']}/{record['amount']}"
 
     # via xgg 20220423
-    def statistics(self, date_initial: datetime.date, date_final: datetime.date):
-        # 不使用isinstance(date, datetime.date)，因为datetime对象也会返回True
-        assert type(date_initial) == datetime.date and type(date_final) == datetime.date
-        df = pd.read_excel(self.table_file)
-        # 将pandas dataframe中的string日期转为datetime.date对象
+    def _plot_statistics(self, df, sort_by='category'):
         date_list = []
         for date_str in df['date']:
             date_list.append(datetime.date.fromisoformat(date_str))
-        df['date_obj'] = date_list  # 将datetime.date对象的列表放到dataframe中
-        # 筛选数据到new_df
-        new_df = df[(date_initial <= df['date_obj']) & (df['date_obj'] < date_final)]  # 日期筛选
-        new_df = new_df[new_df['amount'] <= 0]  # 保留支出项
-        new_df['amount'] *= -1
+        date_initial = min(date_list)
+        date_last = max(date_list)
+        date_final = date_last + datetime.timedelta(days=1)
         # 处理
-        group = new_df.groupby('category').sum()
-        total = np.sum(new_df['amount'])
+
+        group = df.groupby(sort_by).sum()
+        total = np.sum(df['amount'])
 
         # Chinese character
         plt.rcParams['font.family'] = 'sans-serif'
@@ -270,23 +272,24 @@ class AccountBook(RecordTable):
         n_days = (date_final - date_initial).days
         xx = np.arange(n_days)
         # 标记三次
-        delta_ticklabels = n_days//3
+        delta_ticklabels = max(n_days//3, 1)
         xticklabels = [''] * n_days
         for j in range(0, n_days, delta_ticklabels):
             xticklabels[j] = (date_initial + datetime.timedelta(days=j)).isoformat()[-5:]
         # separate
-        category_expenses = {'total': np.zeros(shape=n_days)}
-        for i in new_df.to_dict('records'):
-            cat = i['category']
-            if cat not in category_expenses.keys():
-                category_expenses[cat] = np.zeros(shape=n_days)
-            category_expenses['total'][(i['date_obj'] - date_initial).days] += i['amount']
-            category_expenses[cat][(i['date_obj'] - date_initial).days] += i['amount']
-        # plots
+        expenses_lines = {'total': np.zeros(shape=n_days)}
+        for i in df.to_dict('records'):
+            line_type = i[sort_by]
+            if line_type not in expenses_lines.keys():
+                expenses_lines[line_type] = np.zeros(shape=n_days)
+            expenses_lines['total'][(i['date_obj'] - date_initial).days] += i['amount']
+            expenses_lines[line_type][(i['date_obj'] - date_initial).days] += i['amount']
+        # make figure
         fig, ax = plt.subplots()
-        for cat, y in category_expenses.items():
-            ax.plot(xx, y, label=cat)
+        for line_type, y in expenses_lines.items():
+            ax.plot(xx, y, label=line_type)
         ax.legend()
+        ax.grid()
         ax.set(xticks=xx, xticklabels=xticklabels)
         fig.tight_layout()
         fig.savefig(img_curve)
@@ -301,37 +304,60 @@ class AccountBook(RecordTable):
                 'date_range': f'{date_initial.isoformat()} - '
                               f'{(date_final - datetime.timedelta(days=1)).isoformat()}'}
 
+    # expansion 20220531
+    def statistics(self, date_initial: datetime.date, date_final: datetime.date, category=None):
+        # 不使用isinstance(date, datetime.date)，因为datetime对象也会返回True
+        assert type(date_initial) == datetime.date and type(date_final) == datetime.date
+        df = pd.read_excel(self.table_file)
+        # 将pandas dataframe中的string日期转为datetime.date对象
+        date_list = []
+        for date_str in df['date']:
+            date_list.append(datetime.date.fromisoformat(date_str))
+        df['date_obj'] = date_list  # 将datetime.date对象的列表放到dataframe中
+        # 筛选数据到new_df
+        new_df = df[(date_initial <= df['date_obj']) & (df['date_obj'] < date_final)]  # 日期筛选
+        new_df = new_df[new_df['amount'] <= 0]  # 保留支出项
+        new_df['amount'] *= -1
+
+        if category is None:
+            return self._plot_statistics(df=new_df, sort_by='category')
+        else:
+            new_df = new_df[new_df['category'] == category]
+            return self._plot_statistics(df=new_df, sort_by='place')
+
     # 近n天
-    def statistics_recent(self, days_back: int):
+    def statistics_recent(self, days_back: int, **kwargs):
         assert isinstance(days_back, int) and days_back >= 0
         date_final = datetime.date.today() + datetime.timedelta(days=1)
         date_initial = datetime.date.today() - datetime.timedelta(days=days_back)
-        return self.statistics(date_initial=date_initial, date_final=date_final)
+        return self.statistics(date_initial=date_initial, date_final=date_final, **kwargs)
 
     # 近第n月
-    def statistics_month(self, months_back: int):
+    def statistics_month(self, months_back: int, **kwargs):
         assert isinstance(months_back, int) and months_back >= 0
 
         def previous_month(month_beginning_date: datetime.date):
             new_date = month_beginning_date - datetime.timedelta(days=1)
-            new_date.replace(day=1)
-            return new_date
+            return new_date.replace(day=1)
 
         this_month = datetime.date.today().replace(day=1)
         tomorrow = datetime.date.today() + datetime.timedelta(days=1)
 
         if months_back == 0:  # this month
             return self.statistics(date_initial=this_month,
-                                   date_final=tomorrow)
+                                   date_final=tomorrow,
+                                   **kwargs)
         elif months_back == 1:
             return self.statistics(date_initial=previous_month(this_month),
-                                   date_final=this_month)
+                                   date_final=this_month,
+                                   **kwargs)
         else:
             month_list = [this_month]
             for _ in range(months_back):
                 month_list.append(previous_month(month_list[-1]))
             return self.statistics(date_initial=month_list[-2],
-                                   date_final=month_list[-1])
+                                   date_final=month_list[-1],
+                                   **kwargs)
 
 
 
