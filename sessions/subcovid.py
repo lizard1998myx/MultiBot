@@ -131,7 +131,10 @@ class SubcovidSession(Session):
             for k, v in self.cookie.items():
                 submit_command += f' --{k.lower()} {v}'  # 转为小写防止出错
             if request.msg == '订阅':
-                return [ResponseMsg(f'【{self.session_type}】订阅中...\n"{submit_command}"'),
+                return [ResponseMsg(f'【{self.session_type}】订阅中...\n"{submit_command}"\n'
+                                    f'建议定时任务时间设定在早上7~9点（如回复8.5表示每天08:30填报），'
+                                    f'订阅功能需要加好友后才能收取消息，'
+                                    f'之后发送“取消订阅”可删除对应定时任务。'),
                         request.new(msg=f'订阅 -msg "{submit_command}"')]
             elif request.msg == '录入':
                 save_cookie(self.cookie, user_id=self.user_id)

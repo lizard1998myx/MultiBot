@@ -25,6 +25,7 @@ class Session:
         # 表示控制台的所有用户、CQ中id为123456的用户有权限，其他平台拒绝
         self.permissions = {}
         self._list_commands = True
+        self.log = []  # 给distributor记录log使用
 
     # 判断是否在活动，检查挂起时间是否超出时限
     def is_active(self):

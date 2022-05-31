@@ -1,5 +1,5 @@
 import pickle, os, traceback, time
-from .session_initialize import NEW_SESSIONS, NEW_SESSIONS_CRON
+from .session_initialize import NEW_SESSIONS, NEW_SESSIONS_CRON, LOG_SESSION
 from .responses import *
 from .requests import Request
 from .paths import PATHS
@@ -95,6 +95,7 @@ class Distributor:
 
         # 统一处理current_session
         if session is not None:
+            session.log.append(request)  # 记录Request
             responses = []
             try:
                 raw_results = make_list(session.handle(request=request))
@@ -113,15 +114,25 @@ class Distributor:
             except:
                 session.deactivate()
                 if debug:
+                    debug_info = traceback.format_exc()
                     debug_user_list = get_permissions().get('debug', {}).get(request.platform)
                     if debug_user_list is None:
                         responses.append(ResponseMsg('【MultiBot】报错'))
                     elif debug_user_list == [] or str(request.user_id) in debug_user_list:
                         # 如果debug，将错误信息返回
-                        responses.append(ResponseMsg(traceback.format_exc()))
+                        responses.append(ResponseMsg(debug_info))
                     else:
                         responses.append(ResponseMsg('【MultiBot】报错'))
+                    # turn to LogSession
+                    new_session = LOG_SESSION(user_id=request.user_id)
+                    new_session.log = session.log  # pass log to new_session
+                    session = new_session
+                    session.log.append(debug_info)
+                    self.active_sessions.append(session)
+                    self.current_session = session  # 似乎可以不用
+                    responses.append(ResponseMsg('【MultiBot】检测到后台出错，是否上报聊天记录和错误信息？(y/是/好)'))
             finally:
+                session.log += responses  # 若未报错，加入原session；若报错，加入LogSession（等效）
                 return responses
         else:  # 若没有active session，且Possibility均为0，不返回Response
             return []

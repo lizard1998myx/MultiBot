@@ -1,7 +1,9 @@
 from .api_tokens import SERVER_IP
 
-VERSION_LIST = [{'version': '1.0.0', 'date': '2021-01-22',
-                 'info': '基本框架搭建，接入控制台（console）和QQ（cqhttp+NoneBot）'},
+VERSION_LIST = [{'version': '0.1.0', 'date': '2019-09-03', 'info': '原始版本，cqhttp+nonebot插件的形式'},
+                {'version': '0.x.x', 'date': '2020-xx-xx', 'info': '陆续加入闲聊、天气、群功能、查信息、填报等功能'},
+                {'version': '1.0.0', 'date': '2021-01-22',
+                 'info': '全新框架搭建，接入控制台（console）和QQ（cqhttp+NoneBot）'},
                 {'version': '1.1.0', 'date': '2021-01-23', 'info': '完善框架，加入定时任务和QQ群功能'},
                 {'version': '1.1.x', 'date': '2021-xx-xx', 'info': '在原有框架下，陆续加入了一系列插件'},
                 {'version': '1.2.0', 'date': '2021-04-30', 'info': '整体结构优化，加入帮助信息查询'},
@@ -95,6 +97,9 @@ VERSION_LIST = [{'version': '1.0.0', 'date': '2021-01-22',
                 {'version': '3.4.5', 'date': '2022-04-27', 'info': '新的记录管理，并应用到定时任务提醒模块中'},
                 {'version': '3.4.6', 'date': '2022-04-28', 'info': '将记录管理应用到订阅、权限、记账模块中'},
                 {'version': '3.4.7', 'date': '2022-04-29', 'info': '加强安全性，另外更新了账本统计插件'},
+                {'version': '3.4.8', 'date': '2022-05-02', 'info': '修复订阅和记账的bug'},
+                {'version': '3.5.0', 'date': '2022-05-10', 'info': '加入debug记录功能'},
+                {'version': '3.5.1', 'date': '2022-05-31', 'info': '扩展了账本统计功能'},
                 ]
 
 INTRODUCTION = {'Default': f"你好！我是MultiBot（V{VERSION_LIST[-1]['version']}）。"
