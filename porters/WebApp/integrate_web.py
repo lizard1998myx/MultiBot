@@ -1,8 +1,10 @@
 from .web_app import WebAppPorter
 from ..WCPublic.wcp_flask import WCPublicPorter, WCP_TOKEN
+from ..WCEnterprise.wce_flask import WCEnterprisePorter
 from ...paths import PATHS
 import flask, hashlib, wechatpy, random
 import os, datetime, sys
+
 
 if sys.platform == 'win32':
     import win32api, win32print
@@ -23,6 +25,24 @@ app.debug = DEBUG
 def home():
     response = flask.make_response(flask.render_template("index.html"))
     response.set_cookie('id', '%i' % random.randint(0, 10000), max_age=3600)
+    return response
+
+
+# 20220606 fake ucas in&out
+@app.route('/fake/', methods=['GET'])
+def fake_ucas():
+    data = flask.request.args
+    random_name = random.choice('赵钱孙李周吴郑王冯陈褚卫蒋沈韩杨朱秦尤许何吕施张孔曹严华金魏陶姜')
+    random_name += random.choice('戚谢邹喻柏水窦章云苏潘葛奚范彭郎鲁韦昌马苗凤花方俞任袁柳酆鲍史'
+                                 '唐费廉岑薛雷贺倪汤滕殷罗毕郝邬安常乐于时傅皮卞齐康伍余元卜顾孟平黄')
+    random_id = f'{random.randint(2018, 2022):04d}1800{random.randint(1, 30):02d}{random.randint(0, 9999):05d}'
+    student_name = data.get('name', random_name)
+    student_id = data.get('id', random_id)
+    time_string = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+    response = flask.make_response(flask.render_template("fake.htm",
+                                                         student_name=student_name,
+                                                         student_id=student_id,
+                                                         time_string=time_string))
     return response
 
 
@@ -64,6 +84,16 @@ def wechat2():
     else:
         return WCPublicPorter.msg2reply(wechatpy.parse_message(flask.request.get_data()),
                                         appid='wx0fddfec2f4ba60c8', appsecret='')
+
+
+@app.route("/wce_api", methods=["GET", "POST"])
+def wce():
+    porter = WCEnterprisePorter()
+    if flask.request.method == "GET":
+        return porter.echo(flask_request=flask.request)
+    else:
+        porter.msg_pipeline(flask_request=flask.request)
+        return {}
 
 
 # 添加路由
