@@ -6,9 +6,10 @@ from ....distributor import Distributor
 from ....utils import image_url_to_path
 from ....paths import PATHS
 import os, logging, traceback
+import html, json, xml  # for json/xml object interpretation
 
 # BLACKLIST = [3288849221]
-BLACKLIST = []
+BLACKLIST = [3288849221]
 
 
 @on_natural_language(only_to_me=False, only_short_message=False, allow_empty_message=True)
@@ -81,6 +82,53 @@ async def porter(session: CommandSession):
         elif message['type'] == 'location':
             request.loc = {'longitude': float(message['data']['lon']),
                            'latitude': float(message['data']['lat'])}
+        elif message['type'] == 'json':
+            json_data = json.loads(html.unescape(message['data']['data']))
+            interpretable = False
+            # 尝试解析为location
+            if json_data.get('app') == 'com.tencent.map':
+                try:
+                    loc = {'longitude': float(json_data['meta']['Location.Search']['lng']),
+                           'latitude': float(json_data['meta']['Location.Search']['lat'])}
+                    request.loc = loc
+                    interpretable = True
+                    print(f'== 位置解析成功= {loc} ==')
+                except:
+                    pass
+            if not interpretable:  # 无法解析
+                request.echo = True
+                data_str = ''
+                for k, v in json_data.items():
+                    data_str += f'{k}= {v}\n'
+                request.msg = f"【NonebotPorter】无法识别的JSON消息段：" \
+                              f"{data_str}"
+                continue
+        elif message['type'] == 'xml':
+            xml_data = xml.etree.ElementTree.fromstring(html.unescape(message['data']['data']))
+            interpretable = False
+            if xml_data.attrib.get('brief') == '[位置]':
+                try:
+                    raw_list = xml_data.attrib['actionData'].split('&')
+                    loc = {}
+                    for s in raw_list:
+                        if s[:3] == 'lat':
+                            loc['latitude'] = float(s.split('=')[1])
+                        elif s[:3] == 'lon':
+                            loc['longitude'] = float(s.split('=')[1])
+                    assert len(loc) == 2
+                    request.loc = loc
+                    interpretable = True
+                    print(f'== 位置解析成功= {loc} ==')
+                except:
+                    pass
+            if not interpretable:  # 无法解析
+                request.echo = True
+                data_str = ''
+                for k, v in xml_data.attrib.items():
+                    data_str += f'{k}= {v}\n'
+                request.msg = f"【NonebotPorter】无法识别的XML消息段：" \
+                              f"{data_str}"
+                continue
         elif message['type'] not in ['face', 'at', 'anonymous', 'share', 'reply']:
             request.echo = True
             request.msg = f"【NonebotPorter】不支持的消息段[{message['type']}]：" \
