@@ -1,0 +1,15 @@
+@charset "utf-8";
+
+.frame_load_img { display: inline-block; width: 50px; animation: 1s linear 0s infinite normal none running haha1; }
+
+.frame-loader { position: fixed; z-index: 999; top: 50%; left: 50%; transform: translate3d(-50%, -50%, 0px); }
+
+@-webkit-keyframes haha1 { 
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(90deg); }
+  50% { transform: rotate(180deg); }
+  75% { transform: rotate(270deg); }
+  100% { transform: rotate(360deg); }
+}
+
+#__vconsole .vc-content { line-height: 12px; }

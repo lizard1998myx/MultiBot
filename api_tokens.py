@@ -15,6 +15,8 @@ except FileNotFoundError:
                 'TURING_API_KEY', 'CAIYUN_API_TOKEN',
                 'BAIDU_MAP_API_TOKEN', 'CAIYUN_TRANS_TOKEN',
                 'WCP_TOKEN', 'WCP_APP_ID', 'WCP_APP_SECRET',
+                'WCE_CO_ID', 'WCE_TOKEN', 'WCE_AES_KEY',
+                'WCE_APP_ID', 'WCE_APP_SECRET',
                 'SENDER_NAME', 'SENDER_ADDR', 'SENDER_PWD',
                 'SERVER_IP']
     pd.DataFrame({'api': api_list,
@@ -61,6 +63,13 @@ WCP_TOKEN = TOKEN_DICT.get('WCP_TOKEN')
 WCP_APP_ID = TOKEN_DICT.get('WCP_APP_ID')
 WCP_APP_SECRET = TOKEN_DICT.get('WCP_APP_SECRET')
 # 需要在微信公众平台加入IP白名单才可以
+
+# 微信企业号
+WCE_CO_ID = TOKEN_DICT.get('WCE_CO_ID')
+WCE_TOKEN = TOKEN_DICT.get('WCE_TOKEN')
+WCE_AES_KEY = TOKEN_DICT.get('WCE_AES_KEY')
+WCE_APP_ID = TOKEN_DICT.get('WCE_APP_ID')
+WCE_APP_SECRET = TOKEN_DICT.get('WCE_APP_SECRET')
 
 # 邮箱
 SENDER_NAME = TOKEN_DICT.get('SENDER_NAME')

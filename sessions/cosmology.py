@@ -52,6 +52,7 @@ class CosmoPlotSession(ArgSession):
         self.default_arg = self.arg_list[0]
         self.detail_description = 'example: cosmo -m 0.8 -r 0. -l 0.2 -h 0.6 -zmax 5000 -f2'
         self.this_first_time = True
+        self._plot_kwargs = None
 
     def internal_handle(self, request):
         if self.this_first_time:
@@ -75,9 +76,9 @@ class CosmoPlotSession(ArgSession):
                 cosmo.O_r0 = float(self.arg_dict['r0'].value)
                 cosmo.h0 = float(self.arg_dict['h0'].value)
                 cosmo.set_k0(flat=flat)
-                plot_kwargs = {'cosmo': cosmo,
-                               'zmin': float(self.arg_dict['zmin'].value),
-                               'zmax': float(self.arg_dict['zmax'].value)}
+                self._plot_kwargs = {'cosmo': cosmo,
+                                     'zmin': float(self.arg_dict['zmin'].value),
+                                     'zmax': float(self.arg_dict['zmax'].value)}
             except ValueError:
                 self.deactivate()
                 return ResponseMsg(f'【{self.session_type}】参数不合法')
@@ -104,7 +105,7 @@ class CosmoPlotSession(ArgSession):
                 filename = image_filename(header=f'Cosmo_{fig_type}', abs_path=True)
                 plot_func = eval(f'PlotFunc.{fig_type}')
                 try:
-                    plot_func(filename=filename, **plot_kwargs)
+                    plot_func(filename=filename, **self._plot_kwargs)
                     responses.append(ResponseImg(file=filename))
                 except Exception:
                     traceback.print_exc()

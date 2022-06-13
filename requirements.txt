@@ -82,7 +82,7 @@ tzdata==2021.5
 tzlocal==4.1
 ujson==5.1.0
 urllib3==1.26.9
-wechatpy==1.8.18
+wechatpy==2.0.0.alpha25
 wechaty==0.8.35
 wechaty-grpc==0.20.19
 wechaty-puppet==0.4.1
