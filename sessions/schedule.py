@@ -4,7 +4,7 @@ from .subcovid import daily_run
 from .classroom_schedule import classroom_cache_update
 from .covid_regions import covid_region_cache_update
 from .covid_data import covid_data_cache_update_schedule
-from .subscription import get_qq_subscriptions
+from .subscription import get_qq_subscriptions, get_wce_subscriptions
 from .reminder import check_reminders
 import datetime
 
@@ -42,6 +42,25 @@ class QQScheduleSession(Session):
             if now.hour in [8, 14, 20]:
                 covid_region_cache_update()
         return response_list + get_qq_subscriptions(request=request, now=now)
+
+
+class WCEScheduleSession(Session):
+    def __init__(self, user_id):
+        Session.__init__(self, user_id=user_id)
+        self.session_type = 'WCE定时任务'
+
+    def probability_to_call(self, request):
+        if self.is_legal_request(request=request):
+            return 100
+        return 0
+
+    def is_legal_request(self, request):
+        if request.platform == 'WCE' and request.from_scheduler:
+            return True
+        return False
+
+    def handle(self, request):
+        return get_wce_subscriptions(request=request, now=datetime.datetime.now())
 
 
 class WCScheduleSession(Session):

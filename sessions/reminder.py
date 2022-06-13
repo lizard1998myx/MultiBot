@@ -3,7 +3,6 @@ from .subscription import add_qq_subscription
 from ..responses import ResponseMsg
 from ..paths import PATHS
 from ..external.record_table import RecordTable, RecordNotFoundError
-import pandas as pd
 import datetime, os
 
 REMINDER_TABLE_FILE = os.path.join(PATHS['data'], 'reminder_tables.xlsx')

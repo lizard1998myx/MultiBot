@@ -140,6 +140,12 @@ class WindMapSession(ArgSession):
                                   '点数过多时会随机舍弃部分数据点。\n' \
                                   '例如，“风向 北京市 -d 1 -hr 6 -len 60 -dl 5 -fs 20”。'
 
+    def is_legal_request(self, request):
+        if not self._is_first_time and request.loc is not None:
+            return True
+        else:
+            return self._text_request_only(request)
+
     def internal_handle(self, request):
         self.deactivate()
         try:

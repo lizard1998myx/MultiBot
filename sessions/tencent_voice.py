@@ -62,7 +62,7 @@ class PassiveAudioSession(Session):
 def amr2wav(inputfile):
     output_filename = 'output.wav'
     ff = ffmpy3.FFmpeg(inputs={inputfile: None},
-                  outputs={output_filename: None})
+                       outputs={output_filename: None})
     try:
         ff.run()
     except ffmpy3.FFExecutableNotFoundError as e:
@@ -80,7 +80,8 @@ def amr2silk(inputfile):
 
 
 def convert(filename):
-    if 'http' in filename:
+    print(f'== DEBUG: Conversion on file {filename} ==')
+    if filename[:4] == 'http':
         return convert_from_url(filename)
 
     credential_var = Credential(TCT_SECRET_ID, TCT_SECRET_KEY)
