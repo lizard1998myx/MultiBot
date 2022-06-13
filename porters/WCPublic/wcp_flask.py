@@ -4,6 +4,7 @@ from ...responses import *
 from ...distributor import Distributor
 from ...utils import image_url_to_path
 from ...api_tokens import WCP_APP_ID, WCP_APP_SECRET, WCP_TOKEN
+from ...server_config import FLASK_PORTS
 
 if sys.platform == 'win32':
     DEBUG = True
@@ -11,11 +12,8 @@ else:
     DEBUG = False  # disable debug in linux etc
 
 PLATFORM = 'WCP'
-LOCAL_PORT = 13090
 
 logging.basicConfig(level=logging.DEBUG, format=' %(asctime)s - %(levelname)s - %(message)s')
-app = flask.Flask(__name__)
-app.debug = DEBUG
 
 
 class WCPublicPorter:
@@ -92,9 +90,10 @@ class WCPublicPorter:
 
     @staticmethod
     def upload_image(file, access_token):
-        resp = requests.post(url='https://api.weixin.qq.com/cgi-bin/media/upload',
-                             params={"access_token": access_token, 'type': 'image'},
-                             files={'media': open(file, 'rb')})
+        with open(file, 'rb') as f:
+            resp = requests.post(url='https://api.weixin.qq.com/cgi-bin/media/upload',
+                                 params={"access_token": access_token, 'type': 'image'},
+                                 files={'media': f})
         return resp.json()['media_id']
 
     @staticmethod
@@ -103,23 +102,24 @@ class WCPublicPorter:
                                          source_msg=msg, appid=appid, appsecret=appsecret).render()
 
 
-@app.route("/")
-def hello():
-    return "Hello World! - from flask at %s" % os.environ['COMPUTERNAME']
-
-
-@app.route('/wechat_api/', methods=['GET', 'POST'])  # 定义路由地址请与URL后的保持一致
-def wechat():
-    if flask.request.method == 'GET':
-        data = flask.request.args
-        s = sorted([data.get('timestamp', ''), data.get('nonce', ''), WCP_TOKEN])
-        # 字典排序
-        s = ''.join(s)
-        if hashlib.sha1(s.encode('utf-8')).hexdigest() == data.get('signature', ''):
-            return flask.make_response(data.get('echostr', ''))
-    else:
-        return WCPublicPorter.msg2reply(wechatpy.parse_message(flask.request.get_data()))
-
-
 def main():
-    app.run(port=LOCAL_PORT)
+    app = flask.Flask(__name__)
+    app.debug = DEBUG
+
+    @app.route("/")
+    def hello():
+        return "Hello World! - from flask at %s" % os.environ['COMPUTERNAME']
+
+    @app.route('/wechat_api/', methods=['GET', 'POST'])  # 定义路由地址请与URL后的保持一致
+    def wechat():
+        if flask.request.method == 'GET':
+            data = flask.request.args
+            s = sorted([data.get('timestamp', ''), data.get('nonce', ''), WCP_TOKEN])
+            # 字典排序
+            s = ''.join(s)
+            if hashlib.sha1(s.encode('utf-8')).hexdigest() == data.get('signature', ''):
+                return flask.make_response(data.get('echostr', ''))
+        else:
+            return WCPublicPorter.msg2reply(wechatpy.parse_message(flask.request.get_data()))
+
+    app.run(port=FLASK_PORTS[PLATFORM])
