@@ -100,7 +100,17 @@ VERSION_LIST = [{'version': '0.1.0', 'date': '2019-09-03', 'info': '原始版本
                 {'version': '3.4.8', 'date': '2022-05-02', 'info': '修复订阅和记账的bug'},
                 {'version': '3.5.0', 'date': '2022-05-10', 'info': '加入debug记录功能'},
                 {'version': '3.5.1', 'date': '2022-05-31', 'info': '扩展了账本统计功能'},
+                {'version': '3.5.2', 'date': '2022-06-02', 'info': '修复了QQ语音，支持QQ接收坐标消息'},
+                {'version': '3.6.0', 'date': '2022-06-04', 'info': 'QQ接口直接与cqhttp通信，脱离nonebot（试验）'},
+                {'version': '3.6.1', 'date': '2022-06-06', 'info': '新增出校工具网页'},
+                {'version': '3.7.0', 'date': '2022-06-13', 'info': '接入企业微信应用平台，支持定时任务和订阅'},
                 ]
+
+# ISSUES
+# 1. sep login failure
+# 2. pandemic data update failure (resolved?)
+# 3. WCE audio fail to convert (empty data)
+# 4. WCE-cron errors occur
 
 INTRODUCTION = {'Default': f"你好！我是MultiBot（V{VERSION_LIST[-1]['version']}）。"
                            "回复“更多”了解详情，回复“帮助”查看使用指南。",
@@ -108,6 +118,8 @@ INTRODUCTION = {'Default': f"你好！我是MultiBot（V{VERSION_LIST[-1]['versi
                            "回复“更多”了解详情，回复“帮助”查看使用指南。",
                 'WCP':     "你好！我是公众平台上的MultiBot，这里连接稳定，支持图文消息。"
                            "回复“更多”或“帮助”了解详情，你也可以试试“北京疫情”来查看风险区域。",
+                'WCE':     "你好！我是企业微信上的MultiBot，这里功能基本完善，支持图文语音消息。"
+                           "回复“更多”或“帮助”了解详情。",
                 'Wechat':  "你好！我是微信上的MultiBot，这里功能基本完善，支持文字、图片、语音、地理位置。"
                            "机器人通过个人资料的性别来甄别普通用户和官方号，"
                            "如果你的资料性别为空，请联系管理员添加白名单，否则不会回复。"
@@ -125,8 +137,9 @@ DESCRIPTION = f"""MultiBot V{VERSION_LIST[-1]['version']} (updated {VERSION_LIST
 [接口描述]
 ConsoleIO：控制台交互，拥有最高权限，可以返回图片，但只接收文本命令
 Email：通过Flask实现其他程序调用MBot发送邮件
-QQBot：用cqhttp+nonebot实现的QQ即时通信和定时任务，功能最丰富
+QQBot：用cqhttp+nonebot实现的QQ即时通信和定时任务，功能全面
 WCPublic：用Flask+wechatpy实现的微信公众号被动回复，每次只能回复一条消息
+WCEnterprise：用Flask+wechatpy实现的企业微信应用机器人，功能基本完善
 Wechat：用Wechaty实现的微信交互，功能基本完善（已停用）
 WebApp：用Flask实现的网页交互，只接收文本，但可以返回图片
 
@@ -147,12 +160,14 @@ ipv6版：实验性，发送"ipv6 -l"获取地址
 https://github.com/lizard1998myx/MultiBot
 
 [更新计划/进度]
-1.0+：迁移原GNB_NoneBot聊天机器人的插件
-1.5+：拓展Wechaty、微信公众号、邮箱接口
-2.0+：不同接口之间互相调用的能力（例如通过QQ命令发送微信消息）
-3.0+：整理代码部分，规范格式为python模组
+1.0+: 迁移原GNB_NoneBot聊天机器人的插件
+1.5+: 拓展Wechaty、微信公众号、邮箱接口
+2.0+: 不同接口之间互相调用的能力（例如通过QQ命令发送微信消息）
+3.0+: 整理代码部分，规范格式为python模组
 3.3+: 部署到docker上
-3.5+：加强网页端能力（如保存历史记录、广播）
+3.6+: 自定义cqhttp的WebSocket服务，代替nonebot
+3.7+: 接入企业微信
+4.0+: 加强网页端能力（如保存历史记录、广播）
 
 [反馈]
 QQ机器人账号：1976787406（不加好友）

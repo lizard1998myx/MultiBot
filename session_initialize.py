@@ -9,7 +9,7 @@ from .sessions.cq_command import CQCommandSession, CQRebootSession
 from .sessions.cq_groups import CQGroupSuicideSession, CQGroupRandomSession
 from .sessions.weather import WeatherSession, WindMapSession
 from .sessions.subcovid import SubcovidSession, SubcovidManualSession
-from .sessions.schedule import QQScheduleSession, WCScheduleSession
+from .sessions.schedule import QQScheduleSession, WCScheduleSession, WCEScheduleSession
 from .sessions.classroom_schedule import ClassroomScheduleSession, ClassroomScheduleUpdateSession
 from .sessions.answer_box import AutoAnswerSession, AddAnswerSession
 from .sessions.baidu_search import AutoBaiduSession
@@ -25,7 +25,7 @@ from .sessions.covid_regions import CovidRiskSession, CovidRiskUpdateSession
 from .sessions.subnaoc import SubNaocSession
 from .sessions.user_note_search import UserNoteSession
 from .sessions.wake_on_lan import WolSession
-from .sessions.subscription import AddQQSubscriptionSession, DelQQSubscriptionSession, ListQQSubscriptionSession
+from .sessions.subscription import AddSubscriptionSession, DelSubscriptionSession, ListSubscriptionSession
 from .sessions.popular import NbnhhshSession, BookOfAnswersSession, WebImgSession, \
                               FocusCubeSession, AsoulCnkiSession, UpSideDownTextSession, SlscqSession
 from .sessions.perms_add import AddPermissionSession, DelPermissionSession
@@ -57,7 +57,7 @@ NEW_SESSIONS = [IntroSession, DescriptionSession, VersionSession, HelpSession, E
                 CovidRiskSession, CovidRiskUpdateSession, CovidDataSession, CovidDataUpdateSession,
                 ArxivSession, AstroPlotSession, CosmoPlotSession, AutoBaiduSession, MusicSession,
                 AutoAnswerSession, AddAnswerSession, AutoAliasSession, AddAliasSession,
-                AddQQSubscriptionSession, DelQQSubscriptionSession, ListQQSubscriptionSession,
+                AddSubscriptionSession, DelSubscriptionSession, ListSubscriptionSession,
                 AccountUpdateSession, AccountViewSession, AccountDelSession,
                 AddReminderSession, DelReminderSession, ListReminderSession,
                 UpdateReminderSession, CheckReminderSession,
@@ -65,7 +65,7 @@ NEW_SESSIONS = [IntroSession, DescriptionSession, VersionSession, HelpSession, E
                 CQCommandSession, CQRebootSession, CQGroupSuicideSession, CQGroupRandomSession]
 
 # 定时任务中启用的sessions
-NEW_SESSIONS_CRON = [QQScheduleSession, WCScheduleSession]
+NEW_SESSIONS_CRON = [QQScheduleSession, WCScheduleSession, WCEScheduleSession]
 
 # LogSession
 LOG_SESSION = LogSession

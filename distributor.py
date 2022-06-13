@@ -101,9 +101,6 @@ class Distributor:
                 raw_results = make_list(session.handle(request=request))
                 for r in raw_results:
                     if isinstance(r, Response):
-                        # 有必要时，补充user_id
-                        if type(r) in [ResponseMsg, ResponseImg, ResponseMusic] and not r.user_id:
-                            r.user_id = request.user_id
                         responses.append(r)
                     elif isinstance(r, Request):  # iterate handling requests
                         self._max_iterate -= 1
@@ -133,6 +130,10 @@ class Distributor:
                     responses.append(ResponseMsg('【MultiBot】检测到后台出错，是否上报聊天记录和错误信息？(y/是/好)'))
             finally:
                 session.log += responses  # 若未报错，加入原session；若报错，加入LogSession（等效）
+                for r in responses:
+                    # 有必要时，补充user_id
+                    if type(r) in [ResponseMsg, ResponseImg, ResponseMusic] and not r.user_id:
+                        r.user_id = request.user_id
                 return responses
         else:  # 若没有active session，且Possibility均为0，不返回Response
             return []
@@ -150,6 +151,12 @@ class DistributorCron(Distributor):
         Distributor.__init__(self)
         self._new_session = NEW_SESSIONS_CRON + NEW_SESSIONS  # 定时器专属的新Session列表
         self._max_iterate = 50  # 可能会多次重复调用
+
+    def _load_sessions(self):
+        pass
+
+    def _save_sessions(self):
+        pass
 
 
 # 把原始response转化为序列
